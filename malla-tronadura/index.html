@@ -1,0 +1,1131 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Malla de Tronadura</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: plano a pantalla completa con panel lateral de fichas (inferior en teléfono). */
+:root {
+  --bg: #e9eeec;
+  --surface: #fbfcfb;
+  --surface-2: #f1f5f3;
+  --ink: #16201e;
+  --muted: #5b6966;
+  --line: #cdd7d4;
+  --accent: #0d6b61;
+  --accent-ink: #ffffff;
+  --stage: #d9e0dd;
+  --warn: #b45309;
+  --danger: #b4233c;
+  --ok: #1f7a46;
+  --font-display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --font-body: "Barlow", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+  --radius: 6px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #101614; --surface: #172020; --surface-2: #1d2827; --ink: #e3ebe8; --muted: #93a39f;
+    --line: #2b3836; --accent: #3db5a5; --accent-ink: #062520; --stage: #0b0f0e;
+    --warn: #f0a24b; --danger: #ef6b82; --ok: #5fcf8d; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #101614; --surface: #172020; --surface-2: #1d2827; --ink: #e3ebe8; --muted: #93a39f;
+  --line: #2b3836; --accent: #3db5a5; --accent-ink: #062520; --stage: #0b0f0e;
+  --warn: #f0a24b; --danger: #ef6b82; --ok: #5fcf8d; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 15px/1.45 var(--font-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 10px 12px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+[hidden] { display: none !important; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---------- Barra superior ---------- */
+.bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.brand { display: flex; align-items: baseline; gap: 10px; min-width: 0; margin-right: auto; }
+.brand h1 { font: 700 1.55rem/1 var(--font-display); letter-spacing: .02em; margin: 0; text-transform: uppercase; }
+.brand .file { font: 500 .8rem var(--font-data); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 40ch; }
+.actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.btn {
+  border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius);
+  padding: 6px 12px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px; min-height: 34px;
+}
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.danger { color: var(--danger); }
+.btn.danger.solid { background: var(--danger); color: #fff; border-color: var(--danger); }
+.btn.small { padding: 3px 9px; min-height: 28px; font-size: .88rem; }
+.menu { position: relative; }
+.menu-list {
+  position: absolute; right: 0; top: calc(100% + 4px); z-index: 30; min-width: 230px;
+  background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgba(0,0,0,.18); padding: 4px; display: flex; flex-direction: column;
+}
+.menu-list button { text-align: left; border: 0; background: none; padding: 8px 10px; border-radius: 4px; }
+.menu-list button:hover { background: var(--surface-2); }
+.menu-list small { display: block; color: var(--muted); font-size: .78rem; }
+
+/* ---------- Área principal ---------- */
+.app { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 390px; gap: 10px; }
+.viewer { position: relative; min-width: 0; min-height: 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--stage); overflow: hidden; }
+#stage { position: absolute; inset: 0; overflow: hidden; touch-action: none; cursor: grab; }
+#stage.mode-add { cursor: crosshair; }
+#stage.mode-area { cursor: cell; }
+#stage.dragging { cursor: grabbing; }
+#world { position: absolute; left: 0; top: 0; transform-origin: 0 0; box-shadow: 0 2px 14px rgba(0,0,0,.25); background: #fff; }
+#pdfCanvas { display: block; }
+#overlay { position: absolute; inset: 0; overflow: visible; }
+#overlay text { font-family: var(--font-data); font-weight: 500; paint-order: stroke; stroke: #fff; stroke-linejoin: round; }
+#selRect { position: absolute; border: 1.5px dashed var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); pointer-events: none; }
+
+.tools {
+  position: absolute; left: 10px; top: 10px; z-index: 5; display: flex; gap: 6px; flex-wrap: wrap; max-width: calc(100% - 20px);
+}
+.seg { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.12); }
+.seg button { border: 0; background: none; padding: 6px 10px; font-size: .88rem; font-weight: 500; min-height: 32px; display: inline-flex; align-items: center; gap: 5px; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+.seg svg { width: 16px; height: 16px; }
+.pageNav { font: 500 .85rem var(--font-data); display: inline-flex; align-items: center; padding: 0 8px; }
+
+.legend-float {
+  position: absolute; right: 10px; bottom: 10px; z-index: 5; background: color-mix(in srgb, var(--surface) 92%, transparent);
+  border: 1px solid var(--line); border-radius: var(--radius); padding: 6px 10px; font-size: .82rem;
+  display: flex; flex-direction: column; gap: 3px; box-shadow: 0 1px 4px rgba(0,0,0,.12);
+}
+.legend-float .row { display: flex; align-items: center; gap: 7px; }
+.legend-float b { font-family: var(--font-data); font-weight: 500; margin-left: auto; padding-left: 10px; }
+
+.banner {
+  position: absolute; left: 10px; bottom: 10px; z-index: 6; max-width: min(46ch, calc(100% - 190px));
+  background: var(--ink); color: var(--bg); border-radius: var(--radius); padding: 6px 12px; font-size: .85rem; text-align: center;
+}
+.drop {
+  position: absolute; inset: 0; z-index: 8; display: grid; place-items: center; background: color-mix(in srgb, var(--accent) 18%, transparent);
+  border: 3px dashed var(--accent); border-radius: var(--radius); font: 600 1.4rem var(--font-display); text-transform: uppercase; letter-spacing: .04em; pointer-events: none;
+}
+.busy { position: absolute; inset: 0; z-index: 9; display: grid; place-items: center; background: color-mix(in srgb, var(--stage) 70%, transparent); font-weight: 600; }
+
+/* ---------- Panel ---------- */
+.panel { min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.tabs { display: flex; border-bottom: 1px solid var(--line); }
+.tabs button {
+  flex: 1; border: 0; background: none; padding: 10px 6px 8px; font: 600 1rem var(--font-display); text-transform: uppercase; letter-spacing: .05em;
+  color: var(--muted); border-bottom: 3px solid transparent;
+}
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.tabpane { flex: 1; overflow: auto; padding: 14px; min-height: 0; }
+.eyebrow { font: 600 .74rem var(--font-body); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.holeHead { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.holeHead .num { font: 500 2rem/1 var(--font-data); }
+.holeHead .sym { width: 34px; height: 34px; flex: none; }
+.navBtns { margin-left: auto; display: flex; gap: 4px; }
+.field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+.field label, .field .lbl { font-size: .8rem; font-weight: 600; color: var(--muted); }
+.field input, .field select, .field textarea {
+  border: 1px solid var(--line); background: var(--surface-2); border-radius: var(--radius); padding: 7px 9px; width: 100%; min-width: 0;
+}
+.field textarea { resize: vertical; min-height: 64px; }
+.mono { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.grid2 .field { margin-bottom: 0; }
+.typePick { display: flex; flex-wrap: wrap; gap: 6px; }
+.typePick button {
+  border: 1.5px solid var(--line); background: var(--surface); border-radius: 999px; padding: 4px 11px 4px 6px;
+  display: inline-flex; align-items: center; gap: 6px; font-size: .9rem; font-weight: 500;
+}
+.typePick button[aria-pressed="true"] { border-color: var(--tc, var(--ink)); background: color-mix(in srgb, var(--tc, var(--ink)) 14%, var(--surface)); }
+.typePick svg { width: 20px; height: 20px; }
+.typePick kbd { font: 500 .7rem var(--font-data); color: var(--muted); }
+.hint { color: var(--muted); font-size: .88rem; }
+.diff { font: 500 .85rem var(--font-data); }
+.diff.neg { color: var(--danger); } .diff.pos { color: var(--warn); } .diff.zero { color: var(--ok); }
+.tagWarn { color: var(--danger); font-size: .8rem; }
+.sectionGap { border-top: 1px solid var(--line); margin: 16px 0 14px; }
+.rowBtns { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px; }
+.stat { background: var(--surface-2); border-radius: var(--radius); padding: 8px 10px; }
+.stat .v { font: 500 1.25rem var(--font-data); font-variant-numeric: tabular-nums; }
+.stat .k { font-size: .76rem; color: var(--muted); }
+
+.typeRow { display: grid; grid-template-columns: 30px minmax(0,1fr) 44px; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.typeRow .cfg { grid-column: 2 / 4; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.typeRow input[type=text] { border: 1px solid var(--line); background: var(--surface-2); border-radius: var(--radius); padding: 5px 8px; min-width: 0; width: 100%; font-weight: 600; }
+.typeRow select, .typeRow input[type=number] { border: 1px solid var(--line); background: var(--surface-2); border-radius: var(--radius); padding: 4px 6px; }
+.typeRow input[type=number] { width: 58px; }
+.typeRow input[type=color] { width: 40px; height: 30px; border: 1px solid var(--line); border-radius: var(--radius); padding: 1px; background: var(--surface); }
+.typeRow .count { font: 500 .95rem var(--font-data); text-align: right; }
+.check { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: .92rem; }
+
+.filters { display: flex; gap: 6px; margin-bottom: 10px; }
+.filters input, .filters select { border: 1px solid var(--line); background: var(--surface-2); border-radius: var(--radius); padding: 6px 8px; min-width: 0; }
+.filters input { flex: 1; }
+.tblWrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .86rem; }
+th { text-align: left; font-size: .72rem; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; padding: 4px 6px; border-bottom: 1px solid var(--line); position: sticky; top: -14px; background: var(--surface); }
+td { padding: 5px 6px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td.num, th.num { text-align: right; font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+tbody tr { cursor: pointer; }
+tbody tr:hover { background: var(--surface-2); }
+tbody tr.sel { background: color-mix(in srgb, var(--accent) 16%, var(--surface)); }
+.chip { display: inline-flex; align-items: center; gap: 4px; }
+.chip svg { width: 14px; height: 14px; }
+.dupMark { color: var(--danger); font-weight: 700; }
+
+.toast {
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 50;
+  background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: var(--radius); font-size: .9rem; max-width: calc(100% - 32px);
+  box-shadow: 0 6px 20px rgba(0,0,0,.25);
+}
+
+@media (max-width: 860px) {
+  body { height: auto; min-height: 100%; }
+  html { height: auto; }
+  .app { grid-template-columns: minmax(0, 1fr); grid-template-rows: 62vh auto; }
+  .panel { max-height: none; }
+  .tabpane { overflow: visible; }
+  th { top: 0; }
+  .brand .file { max-width: 22ch; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <div class="brand">
+    <h1>Malla de Tronadura</h1>
+    <span class="file" id="fileName">Sin plano</span>
+  </div>
+  <div class="actions">
+    <button class="btn primary" id="btnOpen" type="button">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M2 13V3h4l1.5 1.5H14V13z"/></svg>
+      Abrir plano PDF
+    </button>
+    <div class="menu">
+      <button class="btn" id="btnExport" type="button" aria-haspopup="true" aria-expanded="false">Exportar ▾</button>
+      <div class="menu-list" id="exportMenu" hidden>
+        <button type="button" data-exp="pdf">PDF anotado<small>Plano original con simbología y etiquetas</small></button>
+        <button type="button" data-exp="csv">Planilla CSV (Excel)<small>Un pozo por fila, separador ;</small></button>
+        <button type="button" data-exp="json">Respaldo JSON<small>Para volver a cargar el trabajo</small></button>
+        <button type="button" data-exp="import">Importar respaldo JSON…<small>Restaura datos guardados</small></button>
+      </div>
+    </div>
+    <button class="btn" id="btnDemo" type="button">Ejemplo</button>
+  </div>
+  <input type="file" id="filePdf" accept="application/pdf,.pdf" hidden>
+  <input type="file" id="fileJson" accept="application/json,.json" hidden>
+</header>
+
+<main class="app">
+  <section class="viewer" aria-label="Plano">
+    <div id="stage">
+      <div id="world">
+        <canvas id="pdfCanvas"></canvas>
+        <svg id="overlay" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+      <div id="selRect" hidden></div>
+    </div>
+    <div class="tools">
+      <div class="seg" role="group" aria-label="Modo">
+        <button type="button" data-mode="select" aria-pressed="true" title="Seleccionar y mover el plano (V)">
+          <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M3 1l10 7-4.5 1L11 14l-2 1-2.5-5L3 13z"/></svg>Seleccionar</button>
+        <button type="button" data-mode="area" aria-pressed="false" title="Seleccionar varios pozos con un rectángulo (A) — también Mayús+arrastrar">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2 2" aria-hidden="true"><rect x="2" y="3" width="12" height="10"/></svg>Área</button>
+        <button type="button" data-mode="add" aria-pressed="false" title="Agregar un pozo que no se detectó (N)">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M8 2v12M2 8h12"/></svg>Agregar pozo</button>
+      </div>
+      <div class="seg" role="group" aria-label="Zoom">
+        <button type="button" id="zoomOut" title="Alejar">−</button>
+        <button type="button" id="zoomFit" title="Ajustar a la ventana">Ajustar</button>
+        <button type="button" id="zoomIn" title="Acercar">+</button>
+      </div>
+      <div class="seg" role="group" aria-label="Página" id="pageCtl" hidden>
+        <button type="button" id="pagePrev" title="Página anterior">‹</button>
+        <span class="pageNav" id="pageLbl">1/1</span>
+        <button type="button" id="pageNext" title="Página siguiente">›</button>
+      </div>
+    </div>
+    <div class="legend-float" id="legendFloat"></div>
+    <div class="banner" id="demoBanner" hidden>Plano de ejemplo con datos ficticios. Abre tu PDF para trabajar con tu malla.</div>
+    <div class="drop" id="dropHint" hidden>Suelta el PDF aquí</div>
+    <div class="busy" id="busy" hidden>Leyendo plano…</div>
+  </section>
+
+  <aside class="panel" aria-label="Datos de pozos">
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" aria-selected="true" data-tab="pozo">Pozo</button>
+      <button type="button" role="tab" aria-selected="false" data-tab="lista">Listado</button>
+      <button type="button" role="tab" aria-selected="false" data-tab="simb">Simbología</button>
+    </div>
+    <div class="tabpane" id="pane-pozo"></div>
+    <div class="tabpane" id="pane-lista" hidden>
+      <div class="filters">
+        <input id="fText" type="search" placeholder="Buscar ID, etiqueta, malla u observación">
+        <select id="fType" aria-label="Filtrar por tipo"></select>
+      </div>
+      <div class="tblWrap"><table>
+        <thead><tr><th>ID</th><th>Malla</th><th>Tipo</th><th>Etiquetas</th><th class="num">P. dis.</th><th class="num">P. real</th></tr></thead>
+        <tbody id="tblBody"></tbody>
+      </table></div>
+    </div>
+    <div class="tabpane" id="pane-simb" hidden></div>
+  </aside>
+</main>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script>
+(() => {
+'use strict';
+
+// ===================== Configuración =====================
+const SYMBOLS = {
+  circle: 'Círculo',
+  double: 'Círculo doble',
+  triplec: 'Círculo triple',
+  triangle: 'Triángulo',
+  square: 'Cuadrado',
+  diamond: 'Rombo',
+  hexagon: 'Hexágono',
+  star: 'Estrella',
+};
+const DEFAULT_TYPES = [
+  { key: 'S', name: 'Simple', color: '#1f6fd1', symbol: 'circle', n: 1 },
+  { key: 'D', name: 'Doble', color: '#e2700f', symbol: 'double', n: 2 },
+  { key: 'T', name: 'Triple', color: '#cf2546', symbol: 'triangle', n: 3 },
+];
+const STORE_PREFIX = 'malla:v1:';
+
+// ===================== Estado =====================
+const S = {
+  docKey: null, fileName: '', bytes: null, pdf: null, demo: false,
+  pageNum: 1, pageCount: 1,
+  vp: null,            // viewport escala 1 de la página actual
+  holes: [],           // {uid,page,id,x,y,dDesign,dReal,type,tags[],group,obs,manual}
+  types: DEFAULT_TYPES.map(t => ({ ...t })),
+  settings: { showTags: true, showUnassigned: true },
+  sel: new Set(),
+  mode: 'select',
+  z: 1, tx: 0, ty: 0,
+  r: 4,                // radio de símbolo en unidades de página
+  confirm: null,       // confirmación en línea pendiente
+};
+let uidSeq = 1;
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const num = (v) => { if (v === null || v === undefined || v === '') return null; const n = parseFloat(String(v).replace(',', '.')); return Number.isFinite(n) ? n : null; };
+const fmt = (v, d = 1) => v === null || v === undefined ? '—' : v.toFixed(d).replace('.', ',');
+const typeOf = (h) => S.types.find(t => t.key === h.type) || null;
+const idNum = (id) => { const n = parseInt(id, 10); return Number.isFinite(n) ? n : 1e9; };
+const byId = (a, b) => (a.group || '').localeCompare(b.group || '') || idNum(a.id) - idNum(b.id) || String(a.id).localeCompare(String(b.id)) || a.uid - b.uid;
+
+function toast(msg, ms = 2600) {
+  const t = $('toast'); t.textContent = msg; t.hidden = false;
+  clearTimeout(toast._t); toast._t = setTimeout(() => { t.hidden = true; }, ms);
+}
+
+// ===================== Persistencia local =====================
+function lsGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, v); } catch { /* sin almacenamiento */ } }
+let saveTimer = null;
+function save() {
+  if (!S.docKey || S.demo) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    lsSet(STORE_PREFIX + S.docKey, JSON.stringify({ fileName: S.fileName, holes: S.holes, types: S.types, settings: S.settings, savedAt: new Date().toISOString() }));
+    lsSet(STORE_PREFIX + 'types', JSON.stringify(S.types));
+  }, 250);
+}
+function idb() {
+  return new Promise((res, rej) => {
+    try {
+      const r = indexedDB.open('malla-tronadura', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('pdf');
+      r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+    } catch (e) { rej(e); }
+  });
+}
+async function idbPut(val) { try { const db = await idb(); db.transaction('pdf', 'readwrite').objectStore('pdf').put(val, 'last'); } catch { /* opcional */ } }
+async function idbGet() {
+  try { const db = await idb(); return await new Promise((res) => { const q = db.transaction('pdf').objectStore('pdf').get('last'); q.onsuccess = () => res(q.result || null); q.onerror = () => res(null); }); }
+  catch { return null; }
+}
+function fingerprint(name, bytes) {
+  let h = 2166136261; const n = Math.min(bytes.length, 65536);
+  for (let i = 0; i < n; i++) { h ^= bytes[i]; h = Math.imul(h, 16777619); }
+  return `${name}|${bytes.length}|${(h >>> 0).toString(16)}`;
+}
+
+// ===================== Símbolos =====================
+function polyPath(pts) { return 'M' + pts.map(p => p[0].toFixed(3) + ' ' + p[1].toFixed(3)).join(' L') + ' Z'; }
+function ngon(n, r, rot = -Math.PI / 2) { const a = []; for (let i = 0; i < n; i++) { const t = rot + i * 2 * Math.PI / n; a.push([r * Math.cos(t), r * Math.sin(t)]); } return a; }
+/** Trayectorias SVG (eje y hacia abajo) centradas en 0,0. Se usan en pantalla y en el PDF exportado. */
+function symbolPaths(sym, r) {
+  switch (sym) {
+    case 'double': return [polyPath(ngon(32, r)), polyPath(ngon(32, r * 0.55))];
+    case 'triplec': return [polyPath(ngon(32, r)), polyPath(ngon(32, r * 0.68)), polyPath(ngon(32, r * 0.36))];
+    case 'triangle': return [polyPath([[0, -r * 1.2], [r * 1.1, r * 0.75], [-r * 1.1, r * 0.75]])];
+    case 'square': return [polyPath([[-r * .9, -r * .9], [r * .9, -r * .9], [r * .9, r * .9], [-r * .9, r * .9]])];
+    case 'diamond': return [polyPath([[0, -r * 1.2], [r * 1.05, 0], [0, r * 1.2], [-r * 1.05, 0]])];
+    case 'hexagon': return [polyPath(ngon(6, r * 1.05, 0))];
+    case 'star': { const p = []; for (let i = 0; i < 10; i++) { const t = -Math.PI / 2 + i * Math.PI / 5; const rr = i % 2 ? r * .5 : r * 1.25; p.push([rr * Math.cos(t), rr * Math.sin(t)]); } return [polyPath(p)]; }
+    default: return [polyPath(ngon(32, r))];
+  }
+}
+function symbolSvg(t, size = 20) {
+  const r = 7; const paths = symbolPaths(t ? t.symbol : 'circle', r);
+  const c = t ? t.color : 'currentColor';
+  return `<svg viewBox="-10 -10 20 20" width="${size}" height="${size}" aria-hidden="true">${paths.map((d, i) =>
+    `<path d="${d}" fill="${i === 0 ? c : 'none'}" fill-opacity="${t ? .25 : 0}" stroke="${c}" stroke-width="1.8" ${t ? '' : 'stroke-dasharray="2 2"'}/>`).join('')}</svg>`;
+}
+
+// ===================== Lectura del PDF =====================
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+/**
+ * Detecta pozos a partir del texto del plano: un ID entero (p. ej. 1008) con
+ * su profundidad decimal (p. ej. 12.0) justo debajo. El pozo (×) queda entre ambos.
+ * Las coordenadas de la grilla (8300, 25700) no tienen profundidad debajo y se descartan.
+ */
+function detectHoles(items, page) {
+  const toks = [];
+  for (const it of items) {
+    if (!it.str || !it.str.trim()) continue;
+    const [a, b, c, d, e, f] = it.transform;
+    if (Math.abs(b) > 1e-3 || Math.abs(c) > 1e-3) continue; // texto rotado
+    const h = Math.abs(d) || it.height || 6;
+    const s = it.str; const w = it.width || h * 0.6 * s.length;
+    const re = /\S+/g; let m;
+    while ((m = re.exec(s))) {
+      toks.push({ s: m[0], x: e + w * (m.index / s.length), w: w * (m[0].length / s.length), y: f, h });
+    }
+  }
+  const ids = toks.filter(t => /^\d{2,5}$/.test(t.s));
+  const depths = toks.filter(t => /^\d{1,3}[.,]\d{1,2}$/.test(t.s));
+  const pairs = [];
+  for (const id of ids) {
+    const cx = id.x + id.w / 2;
+    for (const dp of depths) {
+      const dy = id.y - dp.y;
+      if (dy < id.h * 0.4 || dy > id.h * 4.2) continue;
+      const dx = Math.abs(cx - (dp.x + dp.w / 2));
+      if (dx > Math.max(id.w, dp.w) * 1.4) continue;
+      pairs.push({ id, dp, score: Math.hypot(dx * 1.6, dy) });
+    }
+  }
+  pairs.sort((p, q) => p.score - q.score);
+  const usedI = new Set(), usedD = new Set(), out = [];
+  for (const p of pairs) {
+    if (usedI.has(p.id) || usedD.has(p.dp)) continue;
+    usedI.add(p.id); usedD.add(p.dp);
+    out.push({
+      uid: uidSeq++, page, id: p.id.s,
+      x: p.id.x + p.id.w / 2,
+      y: (p.id.y + p.dp.y + p.dp.h * 0.72) / 2,
+      dDesign: num(p.dp.s), dReal: null, type: '', tags: [], group: '', obs: '', manual: false, th: +p.id.h.toFixed(2),
+    });
+  }
+  return out;
+}
+
+async function openPdf(bytes, name, { demo = false, restore = null } = {}) {
+  $('busy').hidden = false;
+  try {
+    const pdf = await pdfjsLib.getDocument({ data: bytes.slice(0) }).promise;
+    S.pdf = pdf; S.bytes = bytes; S.fileName = name; S.demo = demo; S.pageCount = pdf.numPages; S.pageNum = 1;
+    S.docKey = demo ? null : fingerprint(name, bytes); S.sel.clear();
+    $('demoBanner').hidden = !demo;
+    $('fileName').textContent = name; $('fileName').title = name;
+
+    const stored = restore || (S.docKey ? safeParse(lsGet(STORE_PREFIX + S.docKey)) : null);
+    if (stored && Array.isArray(stored.holes)) {
+      S.holes = stored.holes; S.types = stored.types?.length ? stored.types : S.types;
+      S.settings = { ...S.settings, ...(stored.settings || {}) };
+      uidSeq = Math.max(0, ...S.holes.map(h => h.uid)) + 1;
+    } else {
+      if (!demo) { const gt = safeParse(lsGet(STORE_PREFIX + 'types')); if (Array.isArray(gt) && gt.length) S.types = gt; }
+      S.holes = [];
+      for (let p = 1; p <= pdf.numPages; p++) {
+        const page = await pdf.getPage(p);
+        const tc = await page.getTextContent();
+        S.holes.push(...detectHoles(tc.items, p));
+      }
+    }
+    await renderPage();
+    fit();
+    if (!demo) { idbPut({ name, bytes }); save(); }
+    const n = S.holes.length;
+    if (!stored) toast(n ? `${n} pozos detectados en el plano.` : 'No se detectaron pozos. Usa «Agregar pozo» para marcarlos a mano.', 4000);
+    else toast(`Datos guardados recuperados (${n} pozos).`);
+    return true;
+  } catch (err) {
+    console.error(err);
+    toast('No se pudo leer el PDF. Verifica que el archivo no esté dañado ni protegido con contraseña.', 5000);
+    return false;
+  } finally { $('busy').hidden = true; }
+}
+function safeParse(s) { try { return s ? JSON.parse(s) : null; } catch { return null; } }
+
+async function renderPage() {
+  const page = await S.pdf.getPage(S.pageNum);
+  const vp1 = page.getViewport({ scale: 1 });
+  S.vp = vp1;
+  const longSide = Math.max(vp1.width, vp1.height);
+  const rs = Math.min(5, Math.max(1.5, 3600 / longSide));
+  const vp = page.getViewport({ scale: rs });
+  const cv = $('pdfCanvas');
+  cv.width = Math.round(vp.width); cv.height = Math.round(vp.height);
+  cv.style.width = vp1.width + 'px'; cv.style.height = vp1.height + 'px';
+  $('world').style.width = vp1.width + 'px'; $('world').style.height = vp1.height + 'px';
+  const ov = $('overlay');
+  ov.setAttribute('viewBox', `0 0 ${vp1.width} ${vp1.height}`);
+  ov.setAttribute('width', vp1.width); ov.setAttribute('height', vp1.height);
+  await page.render({ canvasContext: cv.getContext('2d'), viewport: vp }).promise;
+  $('pageCtl').hidden = S.pageCount < 2;
+  $('pageLbl').textContent = `${S.pageNum}/${S.pageCount}`;
+  computeRadius();
+  renderAll();
+}
+
+function toScreen(h) { const [x, y] = S.vp.convertToViewportPoint(h.x, h.y); return { x, y }; }
+function toPdf(x, y) { const [px, py] = S.vp.convertToPdfPoint(x, y); return { x: px, y: py }; }
+function pageHoles() { return S.holes.filter(h => h.page === S.pageNum); }
+
+function computeRadius() {
+  const pts = pageHoles().map(toScreen);
+  const ds = [];
+  for (let i = 0; i < pts.length; i++) {
+    let best = Infinity;
+    for (let j = 0; j < pts.length; j++) if (i !== j) best = Math.min(best, Math.hypot(pts[i].x - pts[j].x, pts[i].y - pts[j].y));
+    if (best < Infinity) ds.push(best);
+  }
+  ds.sort((a, b) => a - b);
+  const med = ds.length ? ds[Math.floor(ds.length / 2)] : 24;
+  // El símbolo no debe tapar el ID ni la profundidad: se limita según la altura del texto del plano.
+  const th = pageHoles().map(h => h.th).filter(Boolean).sort((a, b) => a - b);
+  const capTxt = th.length ? th[Math.floor(th.length / 2)] * 0.6 : 14;
+  S.r = Math.max(1.6, Math.min(14, med * 0.2, capTxt));
+}
+
+// ===================== Dibujo de la capa =====================
+function renderOverlay() {
+  if (!S.vp) return;
+  const r = S.r; const out = [];
+  const tagCount = tagCounts();
+  for (const h of pageHoles()) {
+    const t = typeOf(h); const p = toScreen(h); const sel = S.sel.has(h.uid);
+    if (!t && !S.settings.showUnassigned && !sel) continue;
+    out.push(`<g transform="translate(${p.x.toFixed(2)} ${p.y.toFixed(2)})">`);
+    if (sel) out.push(`<circle r="${(r * 1.85).toFixed(2)}" fill="none" stroke="#0d6b61" stroke-width="${(r * .35).toFixed(2)}" stroke-opacity=".9"/>`);
+    if (t) {
+      symbolPaths(t.symbol, r).forEach((d, i) => out.push(`<path d="${d}" fill="${i === 0 ? t.color : 'none'}" fill-opacity=".28" stroke="${t.color}" stroke-width="${(r * .26).toFixed(2)}"/>`));
+      if (S.settings.showTags) {
+        const tags = (h.tags || []).slice(0, t.n).filter(Boolean);
+        if (tags.length) {
+          const dup = tags.some(x => tagCount.get(x) > 1);
+          const fs = r * 0.95, y0 = -((tags.length - 1) * fs) / 2 + fs * 0.35;
+          out.push(`<text font-size="${fs.toFixed(2)}" fill="${dup ? '#b4233c' : t.color}" stroke-width="${(r * .28).toFixed(2)}">${tags.map((x, i) =>
+            `<tspan x="${(r * 1.45).toFixed(2)}" y="${(y0 + i * fs).toFixed(2)}">${esc(x)}</tspan>`).join('')}</text>`);
+        }
+      }
+    } else {
+      out.push(`<circle r="${(r * .8).toFixed(2)}" fill="none" stroke="#6b7774" stroke-width="${(r * .14).toFixed(2)}" stroke-dasharray="${(r * .35).toFixed(2)} ${(r * .3).toFixed(2)}"/>`);
+    }
+    out.push('</g>');
+  }
+  $('overlay').innerHTML = out.join('');
+}
+
+function tagCounts() {
+  const m = new Map();
+  for (const h of S.holes) { const t = typeOf(h); if (!t) continue; for (const x of (h.tags || []).slice(0, t.n)) if (x) m.set(x, (m.get(x) || 0) + 1); }
+  return m;
+}
+function dupIds() {
+  const m = new Map();
+  for (const h of S.holes) { const k = h.page + '|' + (h.group || '') + '|' + h.id; m.set(k, (m.get(k) || 0) + 1); }
+  return m;
+}
+
+function renderLegend() {
+  const counts = new Map(); let none = 0;
+  for (const h of S.holes) { if (h.type && typeOf(h)) counts.set(h.type, (counts.get(h.type) || 0) + 1); else none++; }
+  $('legendFloat').innerHTML = S.types.map(t => `<div class="row">${symbolSvg(t, 16)}<span>${esc(t.name)}</span><b>${counts.get(t.key) || 0}</b></div>`).join('')
+    + `<div class="row">${symbolSvg(null, 16)}<span>Sin asignar</span><b>${none}</b></div>`;
+}
+
+function renderAll() { renderOverlay(); renderLegend(); renderPanel(); renderTable(); }
+
+// ===================== Zoom y desplazamiento =====================
+function applyXf() { $('world').style.transform = `translate(${S.tx}px, ${S.ty}px) scale(${S.z})`; }
+function fit() {
+  if (!S.vp) return;
+  const st = $('stage').getBoundingClientRect();
+  S.z = Math.min(st.width / S.vp.width, st.height / S.vp.height) * 0.96;
+  S.tx = (st.width - S.vp.width * S.z) / 2; S.ty = (st.height - S.vp.height * S.z) / 2;
+  applyXf();
+}
+function zoomAt(f, sx, sy) {
+  const nz = Math.max(0.15, Math.min(40, S.z * f)); f = nz / S.z;
+  S.tx = sx - (sx - S.tx) * f; S.ty = sy - (sy - S.ty) * f; S.z = nz; applyXf();
+}
+function stagePt(e) { const r = $('stage').getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+function worldPt(sx, sy) { return { x: (sx - S.tx) / S.z, y: (sy - S.ty) / S.z }; }
+function centerOn(h) {
+  const p = toScreen(h); const st = $('stage').getBoundingClientRect();
+  if (S.z < 2) S.z = Math.min(4, Math.max(2, S.z * 2));
+  S.tx = st.width / 2 - p.x * S.z; S.ty = st.height / 2 - p.y * S.z; applyXf();
+}
+function hitHole(wx, wy) {
+  let best = null, bd = Math.max(S.r * 2.2, 10 / S.z);
+  for (const h of pageHoles()) { const p = toScreen(h); const d = Math.hypot(p.x - wx, p.y - wy); if (d < bd) { bd = d; best = h; } }
+  return best;
+}
+
+const ptrs = new Map(); let gest = null;
+const stage = $('stage');
+stage.addEventListener('pointerdown', (e) => {
+  if (!S.vp) return;
+  stage.setPointerCapture(e.pointerId);
+  const p = stagePt(e); ptrs.set(e.pointerId, p);
+  if (ptrs.size === 2) {
+    const [a, b] = [...ptrs.values()];
+    gest = { kind: 'pinch', d: Math.hypot(a.x - b.x, a.y - b.y), cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2 };
+    $('selRect').hidden = true; return;
+  }
+  const area = S.mode === 'area' || e.shiftKey;
+  gest = { kind: area ? 'area' : 'pan', sx: p.x, sy: p.y, tx: S.tx, ty: S.ty, moved: false, add: e.ctrlKey || e.metaKey || e.shiftKey };
+});
+stage.addEventListener('pointermove', (e) => {
+  if (!ptrs.has(e.pointerId) || !gest) return;
+  const p = stagePt(e); ptrs.set(e.pointerId, p);
+  if (gest.kind === 'pinch' && ptrs.size === 2) {
+    const [a, b] = [...ptrs.values()];
+    const d = Math.hypot(a.x - b.x, a.y - b.y); const cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2;
+    S.tx += cx - gest.cx; S.ty += cy - gest.cy; zoomAt(d / gest.d, cx, cy);
+    gest.d = d; gest.cx = cx; gest.cy = cy; return;
+  }
+  const dx = p.x - gest.sx, dy = p.y - gest.sy;
+  if (!gest.moved && Math.hypot(dx, dy) < 5) return;
+  gest.moved = true;
+  if (gest.kind === 'pan') { stage.classList.add('dragging'); S.tx = gest.tx + dx; S.ty = gest.ty + dy; applyXf(); }
+  else if (gest.kind === 'area') {
+    const r = $('selRect'); r.hidden = false;
+    Object.assign(r.style, { left: Math.min(p.x, gest.sx) + 'px', top: Math.min(p.y, gest.sy) + 'px', width: Math.abs(dx) + 'px', height: Math.abs(dy) + 'px' });
+  }
+});
+function endPtr(e) {
+  if (!ptrs.has(e.pointerId)) return;
+  const p = stagePt(e); ptrs.delete(e.pointerId); stage.classList.remove('dragging');
+  if (!gest) return;
+  if (gest.kind === 'pinch') { if (ptrs.size === 0) gest = null; return; }
+  const g = gest; gest = null;
+  if (g.kind === 'area' && g.moved) {
+    $('selRect').hidden = true;
+    const a = worldPt(Math.min(p.x, g.sx), Math.min(p.y, g.sy)), b = worldPt(Math.max(p.x, g.sx), Math.max(p.y, g.sy));
+    if (!g.add) S.sel.clear();
+    for (const h of pageHoles()) { const q = toScreen(h); if (q.x >= a.x && q.x <= b.x && q.y >= a.y && q.y <= b.y) S.sel.add(h.uid); }
+    showTab('pozo'); renderAll();
+    if (S.sel.size) toast(`${S.sel.size} pozos seleccionados.`);
+    return;
+  }
+  if (g.moved) return;
+  const w = worldPt(p.x, p.y);
+  if (S.mode === 'add') { addHoleAt(w.x, w.y); return; }
+  const h = hitHole(w.x, w.y);
+  if (h) {
+    if (e.ctrlKey || e.metaKey || e.shiftKey) { S.sel.has(h.uid) ? S.sel.delete(h.uid) : S.sel.add(h.uid); }
+    else { S.sel.clear(); S.sel.add(h.uid); }
+    showTab('pozo');
+  } else if (!(e.ctrlKey || e.metaKey || e.shiftKey)) S.sel.clear();
+  S.confirm = null; renderAll();
+  if (h && S.sel.size === 1) focusFirstEmpty();
+}
+stage.addEventListener('pointerup', endPtr);
+stage.addEventListener('pointercancel', endPtr);
+stage.addEventListener('wheel', (e) => { if (!S.vp) return; e.preventDefault(); const p = stagePt(e); zoomAt(Math.exp(-e.deltaY * 0.0018), p.x, p.y); }, { passive: false });
+$('zoomIn').onclick = () => { const r = stage.getBoundingClientRect(); zoomAt(1.4, r.width / 2, r.height / 2); };
+$('zoomOut').onclick = () => { const r = stage.getBoundingClientRect(); zoomAt(1 / 1.4, r.width / 2, r.height / 2); };
+$('zoomFit').onclick = fit;
+window.addEventListener('resize', () => { clearTimeout(fit._t); fit._t = setTimeout(fit, 120); });
+$('pagePrev').onclick = async () => { if (S.pageNum > 1) { S.pageNum--; S.sel.clear(); await renderPage(); fit(); } };
+$('pageNext').onclick = async () => { if (S.pageNum < S.pageCount) { S.pageNum++; S.sel.clear(); await renderPage(); fit(); } };
+
+function setMode(m) {
+  S.mode = m;
+  document.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === m)));
+  stage.className = m === 'select' ? '' : 'mode-' + m;
+}
+document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => setMode(b.dataset.mode));
+
+function addHoleAt(wx, wy) {
+  const p = toPdf(wx, wy);
+  const ids = pageHoles().map(h => idNum(h.id)).filter(n => n < 1e9);
+  const h = { uid: uidSeq++, page: S.pageNum, id: String(ids.length ? Math.max(...ids) + 1 : 1), x: p.x, y: p.y, dDesign: null, dReal: null, type: '', tags: [], group: '', obs: '', manual: true };
+  S.holes.push(h); S.sel.clear(); S.sel.add(h.uid);
+  if (pageHoles().length < 3) computeRadius();
+  save(); showTab('pozo'); renderAll();
+  const inp = $('f-id'); if (inp) { inp.focus(); inp.select(); }
+  toast('Pozo agregado. Escribe su ID y datos.');
+}
+
+// ===================== Panel: pozo =====================
+function selected() { return S.holes.filter(h => S.sel.has(h.uid)); }
+function typeButtons(cur, allowNone = true) {
+  const btn = (key, label, t, k) => `<button type="button" data-settype="${esc(key)}" aria-pressed="${cur === key}" style="--tc:${t ? t.color : 'var(--muted)'}">${symbolSvg(t, 20)}${esc(label)}<kbd>${k}</kbd></button>`;
+  return `<div class="typePick">${allowNone ? btn('', 'Sin tipo', null, 0) : ''}${S.types.map((t, i) => btn(t.key, t.name, t, i + 1)).join('')}</div>`;
+}
+
+function renderPanel() {
+  const pane = $('pane-pozo'); const sel = selected();
+  if (!S.vp) { pane.innerHTML = '<p class="hint">Abre un plano PDF para comenzar.</p>'; return; }
+  if (!sel.length) {
+    pane.innerHTML = `<p class="eyebrow">Ningún pozo seleccionado</p>
+      <p class="hint">Toca un pozo en el plano para cargar su etiqueta y profundidad. Con <b>Área</b> (o Mayús + arrastrar) seleccionas varios y les asignas el tipo de una vez.</p>
+      <p class="hint">Atajos: <span class="mono">0–${S.types.length}</span> cambia el tipo, <span class="mono">→ / ←</span> pasa al pozo siguiente o anterior, <span class="mono">Esc</span> limpia la selección.</p>
+      ${summaryHtml()}`;
+    return;
+  }
+  if (sel.length > 1) {
+    const groups = [...new Set(sel.map(h => h.group || ''))];
+    const confirming = S.confirm === 'delmany';
+    pane.innerHTML = `<div class="holeHead"><div><p class="eyebrow">Selección múltiple</p><div class="num">${sel.length} pozos</div></div></div>
+      <div class="field"><span class="lbl">Asignar tipo de etiquetado</span>${typeButtons(sel.every(h => h.type === sel[0].type) ? sel[0].type : '__mixed')}</div>
+      <div class="field"><label for="f-mgroup">Malla / disparo</label>
+        <div class="rowBtns"><input id="f-mgroup" style="flex:1" value="${groups.length === 1 ? esc(groups[0]) : ''}" placeholder="${groups.length > 1 ? 'Varios valores' : 'Ej.: F082400_03'}"><button class="btn small" type="button" id="applyGroup">Aplicar</button></div></div>
+      <div class="rowBtns">
+        <button class="btn small" type="button" id="clearSel">Limpiar selección</button>
+        ${confirming ? `<span class="hint">¿Eliminar ${sel.length} pozos?</span><button class="btn small danger solid" type="button" id="delYes">Eliminar</button><button class="btn small" type="button" id="delNo">Cancelar</button>`
+          : `<button class="btn small danger" type="button" id="delMany">Eliminar pozos</button>`}
+      </div>
+      <div class="sectionGap"></div>
+      <div class="tblWrap"><table><thead><tr><th>ID</th><th>Tipo</th><th class="num">P. dis.</th></tr></thead><tbody>
+      ${sel.sort(byId).map(h => `<tr data-uid="${h.uid}"><td class="mono">${esc(h.id)}</td><td>${chip(h)}</td><td class="num">${fmt(h.dDesign)}</td></tr>`).join('')}</tbody></table></div>`;
+    pane.querySelectorAll('[data-settype]').forEach(b => b.onclick = () => setTypeSel(b.dataset.settype));
+    $('applyGroup').onclick = () => { const v = $('f-mgroup').value.trim(); sel.forEach(h => h.group = v); save(); renderAll(); toast(`Malla asignada a ${sel.length} pozos.`); };
+    $('clearSel').onclick = () => { S.sel.clear(); renderAll(); };
+    if (confirming) { $('delYes').onclick = () => deleteHoles(sel); $('delNo').onclick = () => { S.confirm = null; renderPanel(); }; }
+    else $('delMany').onclick = () => { S.confirm = 'delmany'; renderPanel(); };
+    pane.querySelectorAll('tr[data-uid]').forEach(tr => tr.onclick = () => { S.sel.clear(); S.sel.add(+tr.dataset.uid); renderAll(); });
+    return;
+  }
+
+  const h = sel[0]; const t = typeOf(h); const n = t ? t.n : 0;
+  const tc = tagCounts(); const dupKey = dupIds().get(h.page + '|' + (h.group || '') + '|' + h.id) > 1;
+  const diff = h.dReal !== null && h.dDesign !== null ? h.dReal - h.dDesign : null;
+  const diffCls = diff === null ? '' : Math.abs(diff) < 0.05 ? 'zero' : diff < 0 ? 'neg' : 'pos';
+  let tagsHtml = '';
+  for (let i = 0; i < n; i++) {
+    const v = (h.tags || [])[i] || '';
+    tagsHtml += `<div class="field"><label for="f-tag${i}">N° etiqueta ${n > 1 ? i + 1 : ''}</label>
+      <input id="f-tag${i}" class="mono" data-tag="${i}" value="${esc(v)}" autocomplete="off" placeholder="Número de etiqueta">
+      ${v && tc.get(v) > 1 ? '<span class="tagWarn">Este número de etiqueta ya está usado en otro pozo.</span>' : ''}</div>`;
+  }
+  const confirming = S.confirm === 'del';
+  pane.innerHTML = `
+    <div class="holeHead">
+      <span class="sym">${symbolSvg(t, 34)}</span>
+      <div><p class="eyebrow">Pozo ${h.manual ? '· agregado a mano' : ''}</p><div class="num">${esc(h.id)}</div></div>
+      <div class="navBtns"><button class="btn small" type="button" id="prevH" title="Pozo anterior (←)">‹</button><button class="btn small" type="button" id="nextH" title="Pozo siguiente (→)">›</button></div>
+    </div>
+    <div class="field"><span class="lbl">Tipo de etiquetado</span>${typeButtons(h.type)}</div>
+    ${tagsHtml || '<p class="hint">Elige Simple, Doble o Triple para cargar los números de etiqueta.</p>'}
+    <div class="grid2">
+      <div class="field"><label for="f-dd">Prof. diseño (m)</label><input id="f-dd" class="mono" inputmode="decimal" value="${h.dDesign === null ? '' : h.dDesign.toFixed(1)}"></div>
+      <div class="field"><label for="f-dr">Prof. real (m)</label><input id="f-dr" class="mono" inputmode="decimal" value="${h.dReal ?? ''}" placeholder="Medida en terreno"></div>
+    </div>
+    <p class="diff ${diffCls}" id="diffLine">${diff === null ? '&nbsp;' : `Diferencia real − diseño: ${diff > 0 ? '+' : ''}${fmt(diff, 2)} m`}</p>
+    <div class="grid2">
+      <div class="field"><label for="f-id">ID pozo</label><input id="f-id" class="mono" value="${esc(h.id)}">${dupKey ? '<span class="tagWarn">ID repetido en esta malla. Asigna la malla para diferenciarlos.</span>' : ''}</div>
+      <div class="field"><label for="f-group">Malla / disparo</label><input id="f-group" value="${esc(h.group || '')}" placeholder="Ej.: F082400_03"></div>
+    </div>
+    <div class="field" style="margin-top:12px"><label for="f-obs">Observaciones</label><textarea id="f-obs" placeholder="Ej.: pozo con agua, tapado, repasado">${esc(h.obs || '')}</textarea></div>
+    <div class="rowBtns">
+      ${confirming ? `<span class="hint">¿Eliminar el pozo ${esc(h.id)}?</span><button class="btn small danger solid" type="button" id="delYes">Eliminar</button><button class="btn small" type="button" id="delNo">Cancelar</button>`
+        : `<button class="btn small danger" type="button" id="delOne">Eliminar pozo</button>`}
+    </div>`;
+  pane.querySelectorAll('[data-settype]').forEach(b => b.onclick = () => setTypeSel(b.dataset.settype));
+  pane.querySelectorAll('[data-tag]').forEach(inp => {
+    inp.oninput = () => { h.tags = h.tags || []; h.tags[+inp.dataset.tag] = inp.value.trim(); save(); renderOverlay(); renderTable(); };
+    inp.onchange = () => renderPanelKeepFocus();
+    inp.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); const nx = pane.querySelector(`[data-tag="${+inp.dataset.tag + 1}"]`) || $('f-dr'); nx.focus(); nx.select?.(); } };
+  });
+  $('f-dd').oninput = (e) => { h.dDesign = num(e.target.value); save(); updDiff(h); renderTable(); };
+  $('f-dr').oninput = (e) => { h.dReal = num(e.target.value); save(); updDiff(h); renderTable(); };
+  $('f-dr').onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); step(1); } };
+  $('f-id').onchange = (e) => { h.id = e.target.value.trim() || h.id; save(); renderAll(); };
+  $('f-group').onchange = (e) => { h.group = e.target.value.trim(); save(); renderAll(); };
+  $('f-obs').oninput = (e) => { h.obs = e.target.value; save(); };
+  $('prevH').onclick = () => step(-1); $('nextH').onclick = () => step(1);
+  if (confirming) { $('delYes').onclick = () => deleteHoles([h]); $('delNo').onclick = () => { S.confirm = null; renderPanel(); }; }
+  else $('delOne').onclick = () => { S.confirm = 'del'; renderPanel(); };
+}
+function renderPanelKeepFocus() {
+  const id = document.activeElement?.id; renderPanel(); renderLegend();
+  if (id && $(id)) $(id).focus();
+}
+function updDiff(h) {
+  const el = $('diffLine'); if (!el) return;
+  const diff = h.dReal !== null && h.dDesign !== null ? h.dReal - h.dDesign : null;
+  el.className = 'diff ' + (diff === null ? '' : Math.abs(diff) < 0.05 ? 'zero' : diff < 0 ? 'neg' : 'pos');
+  el.innerHTML = diff === null ? '&nbsp;' : `Diferencia real − diseño: ${diff > 0 ? '+' : ''}${fmt(diff, 2)} m`;
+}
+function focusFirstEmpty() {
+  const tags = [...document.querySelectorAll('#pane-pozo [data-tag]')];
+  if (matchMedia('(pointer: coarse)').matches) return; // en teléfono no abrir el teclado solo
+  const e = tags.find(i => !i.value); if (e) e.focus();
+}
+function setTypeSel(key) {
+  if (key === '__mixed') return;
+  const sel = selected(); if (!sel.length) return;
+  sel.forEach(h => { h.type = key; });
+  save(); renderAll();
+  if (sel.length === 1) focusFirstEmpty();
+}
+function step(dir) {
+  const list = pageHoles().sort(byId); if (!list.length) return;
+  const cur = selected()[0]; let i = cur ? list.findIndex(h => h.uid === cur.uid) : -1;
+  i = (i + dir + list.length) % list.length;
+  S.sel.clear(); S.sel.add(list[i].uid); S.confirm = null; renderAll(); centerOn(list[i]); focusFirstEmpty();
+}
+function deleteHoles(list) {
+  const ids = new Set(list.map(h => h.uid));
+  S.holes = S.holes.filter(h => !ids.has(h.uid)); S.sel.clear(); S.confirm = null; save(); renderAll();
+  toast(list.length === 1 ? 'Pozo eliminado.' : `${list.length} pozos eliminados.`);
+}
+
+function stats() {
+  const by = new Map(); let none = 0, dets = 0, mD = 0, mR = 0, nR = 0, tagsMissing = 0;
+  for (const h of S.holes) {
+    const t = typeOf(h);
+    if (t) { by.set(t.key, (by.get(t.key) || 0) + 1); dets += t.n; for (let i = 0; i < t.n; i++) if (!(h.tags || [])[i]) tagsMissing++; } else none++;
+    if (h.dDesign !== null) mD += h.dDesign;
+    if (h.dReal !== null) { mR += h.dReal; nR++; }
+  }
+  const dupTags = [...tagCounts()].filter(([, c]) => c > 1).map(([k]) => k);
+  return { by, none, dets, mD, mR, nR, tagsMissing, dupTags, total: S.holes.length };
+}
+function summaryHtml() {
+  const s = stats();
+  return `<div class="sectionGap"></div><p class="eyebrow">Resumen de la malla</p>
+    <div class="stats">
+      <div class="stat"><div class="v">${s.total}</div><div class="k">Pozos</div></div>
+      <div class="stat"><div class="v">${s.dets}</div><div class="k">Detonadores (según tipo)</div></div>
+      <div class="stat"><div class="v">${fmt(s.mD)}</div><div class="k">Metros diseño</div></div>
+      <div class="stat"><div class="v">${fmt(s.mR)}</div><div class="k">Metros reales (${s.nR} pozos medidos)</div></div>
+      <div class="stat"><div class="v">${s.none}</div><div class="k">Pozos sin tipo</div></div>
+      <div class="stat"><div class="v">${s.tagsMissing}</div><div class="k">Etiquetas por cargar</div></div>
+    </div>
+    ${s.dupTags.length ? `<p class="tagWarn">Etiquetas repetidas: <span class="mono">${s.dupTags.map(esc).join(', ')}</span></p>` : ''}`;
+}
+
+// ===================== Panel: listado =====================
+function chip(h) { const t = typeOf(h); return `<span class="chip">${symbolSvg(t, 14)}${t ? esc(t.name) : '<span class="hint">—</span>'}</span>`; }
+function renderTypeFilter() {
+  const f = $('fType'); const cur = f.value;
+  f.innerHTML = `<option value="*">Todos los tipos</option><option value="">Sin tipo</option>` + S.types.map(t => `<option value="${esc(t.key)}">${esc(t.name)}</option>`).join('');
+  f.value = cur && [...f.options].some(o => o.value === cur) ? cur : (cur === '' && f.dataset.ready ? '' : '*'); f.dataset.ready = '1';
+}
+function renderTable() {
+  if ($('pane-lista').hidden) return;
+  const q = $('fText').value.trim().toLowerCase(); const ft = $('fType').value;
+  const dups = dupIds();
+  const rows = S.holes.filter(h => {
+    if (ft !== '*' && (typeOf(h) ? h.type : '') !== ft) return false;
+    if (!q) return true;
+    return [h.id, h.group, h.obs, ...(h.tags || [])].some(v => String(v || '').toLowerCase().includes(q));
+  }).sort((a, b) => a.page - b.page || byId(a, b));
+  $('tblBody').innerHTML = rows.map(h => {
+    const t = typeOf(h); const dup = dups.get(h.page + '|' + (h.group || '') + '|' + h.id) > 1;
+    return `<tr data-uid="${h.uid}" class="${S.sel.has(h.uid) ? 'sel' : ''}">
+      <td class="mono">${esc(h.id)}${dup ? ' <span class="dupMark" title="ID repetido">!</span>' : ''}${S.pageCount > 1 ? `<span class="hint"> p${h.page}</span>` : ''}</td>
+      <td>${esc(h.group || '')}</td><td>${chip(h)}</td>
+      <td class="mono">${t ? esc((h.tags || []).slice(0, t.n).filter(Boolean).join(' / ')) : ''}</td>
+      <td class="num">${fmt(h.dDesign)}</td><td class="num">${fmt(h.dReal)}</td></tr>`;
+  }).join('') || `<tr><td colspan="6" class="hint">Sin pozos para este filtro.</td></tr>`;
+  $('tblBody').querySelectorAll('tr[data-uid]').forEach(tr => tr.onclick = async () => {
+    const h = S.holes.find(x => x.uid === +tr.dataset.uid); if (!h) return;
+    if (h.page !== S.pageNum) { S.pageNum = h.page; await renderPage(); }
+    document.activeElement?.blur();
+    S.sel.clear(); S.sel.add(h.uid); centerOn(h); showTab('pozo'); renderAll();
+  });
+}
+$('fText').oninput = renderTable; $('fType').onchange = renderTable;
+
+// ===================== Panel: simbología =====================
+function renderSimb() {
+  const counts = new Map(); for (const h of S.holes) if (h.type) counts.set(h.type, (counts.get(h.type) || 0) + 1);
+  const opts = (cur) => Object.entries(SYMBOLS).map(([k, v]) => `<option value="${k}" ${k === cur ? 'selected' : ''}>${v}</option>`).join('');
+  $('pane-simb').innerHTML = `
+    <p class="eyebrow">Tipos de etiquetado</p>
+    <p class="hint">Cada tipo define el color, el símbolo en el plano y cuántos números de etiqueta lleva el pozo.</p>
+    ${S.types.map((t, i) => `<div class="typeRow" data-i="${i}">
+      <span>${symbolSvg(t, 28)}</span>
+      <input type="text" id="tn-${i}" value="${esc(t.name)}" aria-label="Nombre del tipo">
+      <span class="count" title="Pozos con este tipo">${counts.get(t.key) || 0}</span>
+      <div class="cfg">
+        <input type="color" id="tc-${i}" value="${t.color}" aria-label="Color">
+        <select id="ts-${i}" aria-label="Símbolo">${opts(t.symbol)}</select>
+        <label class="hint" for="tq-${i}">Etiquetas</label><input type="number" id="tq-${i}" min="1" max="6" value="${t.n}">
+        ${S.confirm === 'deltype' + i ? `<button class="btn small danger solid" type="button" data-tdel-yes="${i}">Quitar</button><button class="btn small" type="button" data-tdel-no>Cancelar</button>`
+          : `<button class="btn small danger" type="button" data-tdel="${i}" title="Quitar tipo">Quitar</button>`}
+      </div></div>`).join('')}
+    <div class="rowBtns" style="margin-top:10px"><button class="btn small" type="button" id="addType">+ Agregar tipo</button><button class="btn small" type="button" id="resetTypes">Restablecer Simple / Doble / Triple</button></div>
+    <div class="sectionGap"></div>
+    <p class="eyebrow">Vista del plano</p>
+    <label class="check"><input type="checkbox" id="optTags" ${S.settings.showTags ? 'checked' : ''}> Mostrar números de etiqueta junto al pozo</label>
+    <label class="check"><input type="checkbox" id="optUn" ${S.settings.showUnassigned ? 'checked' : ''}> Mostrar pozos sin tipo (círculo punteado)</label>
+    <div class="sectionGap"></div>
+    <p class="eyebrow">Detección</p>
+    <p class="hint">Se detectaron ${S.holes.filter(h => !h.manual).length} pozos desde el texto del plano y ${S.holes.filter(h => h.manual).length} se agregaron a mano.</p>
+    <div class="rowBtns">${S.confirm === 'redetect' ? `<span class="hint">Se borrarán los datos cargados. ¿Continuar?</span><button class="btn small danger solid" type="button" id="redetYes">Volver a detectar</button><button class="btn small" type="button" id="redetNo">Cancelar</button>`
+      : `<button class="btn small" type="button" id="redetect">Volver a detectar pozos</button>`}</div>`;
+  S.types.forEach((t, i) => {
+    $('tn-' + i).onchange = (e) => { t.name = e.target.value.trim() || t.name; commitTypes(); };
+    $('tc-' + i).oninput = (e) => { t.color = e.target.value; commitTypes(false); };
+    $('tc-' + i).onchange = () => commitTypes();
+    $('ts-' + i).onchange = (e) => { t.symbol = e.target.value; commitTypes(); };
+    $('tq-' + i).onchange = (e) => { t.n = Math.max(1, Math.min(6, parseInt(e.target.value, 10) || 1)); commitTypes(); };
+  });
+  document.querySelectorAll('[data-tdel]').forEach(b => b.onclick = () => { S.confirm = 'deltype' + b.dataset.tdel; renderSimb(); });
+  document.querySelectorAll('[data-tdel-no]').forEach(b => b.onclick = () => { S.confirm = null; renderSimb(); });
+  document.querySelectorAll('[data-tdel-yes]').forEach(b => b.onclick = () => {
+    const t = S.types[+b.dataset.tdelYes]; S.types.splice(+b.dataset.tdelYes, 1);
+    S.holes.forEach(h => { if (h.type === t.key) h.type = ''; }); S.confirm = null; commitTypes();
+  });
+  $('addType').onclick = () => {
+    const palette = ['#2e9d57', '#7b4fd6', '#0f8fa3', '#a1662c', '#d1349b'];
+    S.types.push({ key: 'C' + Date.now().toString(36), name: 'Nuevo tipo', color: palette[S.types.length % palette.length], symbol: 'square', n: 1 });
+    commitTypes(); $('tn-' + (S.types.length - 1))?.select();
+  };
+  $('resetTypes').onclick = () => {
+    for (const d of DEFAULT_TYPES) { const t = S.types.find(x => x.key === d.key); if (t) Object.assign(t, d); else S.types.push({ ...d }); }
+    commitTypes();
+  };
+  $('optTags').onchange = (e) => { S.settings.showTags = e.target.checked; save(); renderOverlay(); };
+  $('optUn').onchange = (e) => { S.settings.showUnassigned = e.target.checked; save(); renderOverlay(); };
+  if ($('redetect')) $('redetect').onclick = () => { S.confirm = 'redetect'; renderSimb(); };
+  if ($('redetYes')) $('redetYes').onclick = async () => {
+    S.confirm = null; S.holes = []; S.sel.clear();
+    for (let p = 1; p <= S.pageCount; p++) { const pg = await S.pdf.getPage(p); S.holes.push(...detectHoles((await pg.getTextContent()).items, p)); }
+    computeRadius(); save(); renderAll(); renderSimb(); toast(`${S.holes.length} pozos detectados.`);
+  };
+  if ($('redetNo')) $('redetNo').onclick = () => { S.confirm = null; renderSimb(); };
+}
+function commitTypes(full = true) {
+  save(); renderOverlay(); renderLegend(); renderTypeFilter();
+  if (full) { renderSimb(); renderPanel(); renderTable(); }
+}
+
+function showTab(name) {
+  document.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === name)));
+  for (const n of ['pozo', 'lista', 'simb']) $('pane-' + n).hidden = n !== name;
+  if (name === 'lista') { renderTypeFilter(); renderTable(); }
+  if (name === 'simb') { S.confirm = null; renderSimb(); }
+}
+document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => showTab(b.dataset.tab));
+
+// ===================== Teclado =====================
+document.addEventListener('keydown', (e) => {
+  const tag = e.target.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (/^[0-9]$/.test(e.key) && S.sel.size) {
+    const i = +e.key; if (i === 0) setTypeSel(''); else if (S.types[i - 1]) setTypeSel(S.types[i - 1].key);
+    e.preventDefault();
+  } else if (e.key === 'ArrowRight') { step(1); e.preventDefault(); }
+  else if (e.key === 'ArrowLeft') { step(-1); e.preventDefault(); }
+  else if (e.key === 'Escape') { S.sel.clear(); S.confirm = null; renderAll(); setMode('select'); }
+  else if (e.key === 'v' || e.key === 'V') setMode('select');
+  else if (e.key === 'a' || e.key === 'A') setMode('area');
+  else if (e.key === 'n' || e.key === 'N') setMode('add');
+});
+
+// ===================== Abrir archivos =====================
+$('btnOpen').onclick = () => $('filePdf').click();
+$('filePdf').onchange = async (e) => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (f) await openPdf(new Uint8Array(await f.arrayBuffer()), f.name);
+};
+const viewer = document.querySelector('.viewer');
+viewer.addEventListener('dragover', (e) => { e.preventDefault(); $('dropHint').hidden = false; });
+viewer.addEventListener('dragleave', (e) => { if (!viewer.contains(e.relatedTarget)) $('dropHint').hidden = true; });
+viewer.addEventListener('drop', async (e) => {
+  e.preventDefault(); $('dropHint').hidden = true;
+  const f = [...e.dataTransfer.files].find(x => /pdf$/i.test(x.type) || /\.pdf$/i.test(x.name));
+  if (f) await openPdf(new Uint8Array(await f.arrayBuffer()), f.name); else toast('Arrastra un archivo PDF.');
+});
+$('btnDemo').onclick = loadDemo;
+
+// ===================== Exportar =====================
+const menuBtn = $('btnExport'), menu = $('exportMenu');
+menuBtn.onclick = (e) => { e.stopPropagation(); menu.hidden = !menu.hidden; menuBtn.setAttribute('aria-expanded', String(!menu.hidden)); };
+document.addEventListener('click', (e) => { if (!menu.hidden && !menu.contains(e.target)) { menu.hidden = true; menuBtn.setAttribute('aria-expanded', 'false'); } });
+menu.querySelectorAll('[data-exp]').forEach(b => b.onclick = async () => {
+  menu.hidden = true; menuBtn.setAttribute('aria-expanded', 'false');
+  const k = b.dataset.exp;
+  if (k === 'import') { $('fileJson').click(); return; }
+  if (!S.vp) { toast('Primero abre un plano.'); return; }
+  try {
+    if (k === 'csv') await saveFile(baseName() + '_pozos.csv', '﻿' + buildCsv());
+    if (k === 'json') await saveFile(baseName() + '_respaldo.json', JSON.stringify({ app: 'malla-tronadura', version: 1, fileName: S.fileName, docKey: S.docKey, exportedAt: new Date().toISOString(), types: S.types, settings: S.settings, holes: S.holes }, null, 1));
+    if (k === 'pdf') { toast('Generando PDF…'); await saveFile(baseName() + '_anotado.pdf', new Blob([await buildPdf()], { type: 'application/pdf' })); }
+  } catch (err) { console.error(err); toast('No se pudo exportar: ' + (err.message || err.code || err), 5000); }
+});
+function baseName() { return (S.fileName || 'malla').replace(/\.pdf$/i, '').replace(/[^\w\-]+/g, '_'); }
+async function saveFile(name, data) {
+  let dl = null;
+  try { dl = window.claude?.use ? await window.claude.use('downloads') : null; } catch { dl = null; }
+  if (dl) {
+    try { await dl.save({ filename: name, data }); toast('Archivo guardado: ' + name); }
+    catch (err) { if (err?.code !== 'declined') toast('No se pudo guardar el archivo (' + (err?.code || 'error') + ').'); }
+    return;
+  }
+  const blob = data instanceof Blob ? data : new Blob([data], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  toast('Descargando ' + name);
+}
+function buildCsv() {
+  const maxN = Math.max(1, ...S.types.map(t => t.n));
+  const head = ['Página', 'Malla', 'ID pozo', 'Tipo', 'N° etiquetas'];
+  for (let i = 1; i <= maxN; i++) head.push('Etiqueta ' + i);
+  head.push('Prof. diseño (m)', 'Prof. real (m)', 'Diferencia (m)', 'Observaciones', 'X plano', 'Y plano', 'Origen');
+  const q = (v) => { const s = String(v ?? ''); return /[;"\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const dec = (v, d = 2) => v === null || v === undefined ? '' : v.toFixed(d).replace('.', ',');
+  const rows = [head];
+  for (const h of [...S.holes].sort((a, b) => a.page - b.page || byId(a, b))) {
+    const t = typeOf(h); const r = [h.page, h.group || '', h.id, t ? t.name : 'Sin tipo', t ? t.n : 0];
+    for (let i = 0; i < maxN; i++) r.push(t && i < t.n ? (h.tags || [])[i] || '' : '');
+    r.push(dec(h.dDesign, 1), dec(h.dReal, 2), h.dReal !== null && h.dDesign !== null ? dec(h.dReal - h.dDesign, 2) : '', h.obs || '', dec(h.x, 1), dec(h.y, 1), h.manual ? 'Manual' : 'Plano');
+    rows.push(r);
+  }
+  return rows.map(r => r.map(q).join(';')).join('\r\n');
+}
+function hexRgb(hex) { const n = parseInt(hex.slice(1), 16); return PDFLib.rgb(((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255); }
+async function buildPdf() {
+  const { PDFDocument, StandardFonts, rgb } = PDFLib;
+  const doc = await PDFDocument.load(S.bytes.slice(0));
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const bold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const pages = doc.getPages();
+  const s = stats();
+  for (let p = 1; p <= pages.length; p++) {
+    const page = pages[p - 1]; const hs = S.holes.filter(h => h.page === p && typeOf(h));
+    if (!hs.length && p !== S.pageNum) continue;
+    const r = S.r; // misma escala que en pantalla (unidades de página)
+    for (const h of hs) {
+      const t = typeOf(h); const c = hexRgb(t.color);
+      symbolPaths(t.symbol, r).forEach((d, i) => page.drawSvgPath(d, {
+        x: h.x, y: h.y, color: i === 0 ? c : undefined, opacity: 0.28, borderColor: c, borderWidth: r * 0.26, borderOpacity: 1,
+      }));
+      const tags = (h.tags || []).slice(0, t.n).filter(Boolean);
+      const fs = r * 0.95, y0 = ((tags.length - 1) * fs) / 2 - fs * 0.35;
+      tags.forEach((x, i) => page.drawText(x, { x: h.x + r * 1.45, y: h.y + y0 - i * fs, size: fs, font, color: c }));
+    }
+    // Cuadro de simbología en la esquina inferior izquierda
+    const { x: bx0, y: by0 } = page.getMediaBox();
+    const lh = 9, rows = S.types.length + 3, w = 150, hgt = rows * lh + 10, x0 = bx0 + 12, y0 = by0 + 12;
+    page.drawRectangle({ x: x0, y: y0, width: w, height: hgt, color: rgb(1, 1, 1), opacity: 0.92, borderColor: rgb(0.2, 0.2, 0.2), borderWidth: 0.6 });
+    let y = y0 + hgt - 11;
+    page.drawText('SIMBOLOGÍA ETIQUETADO', { x: x0 + 6, y, size: 6.5, font: bold, color: rgb(0.1, 0.1, 0.1) }); y -= lh;
+    for (const t of S.types) {
+      const c = hexRgb(t.color);
+      symbolPaths(t.symbol, 3).forEach((d, i) => page.drawSvgPath(d, { x: x0 + 10, y: y + 2.2, color: i === 0 ? c : undefined, opacity: .28, borderColor: c, borderWidth: .8 }));
+      page.drawText(`${t.name} (${t.n} etiq.)`, { x: x0 + 18, y, size: 6.5, font, color: rgb(0.1, 0.1, 0.1) });
+      page.drawText(String(s.by.get(t.key) || 0), { x: x0 + w - 22, y, size: 6.5, font: bold, color: rgb(0.1, 0.1, 0.1) });
+      y -= lh;
+    }
+    page.drawText(`Detonadores: ${s.dets}   Pozos sin tipo: ${s.none}`, { x: x0 + 6, y, size: 6, font, color: rgb(0.25, 0.25, 0.25) }); y -= lh;
+    page.drawText(`Generado ${new Date().toLocaleString('es-CL')}`, { x: x0 + 6, y, size: 5.5, font, color: rgb(0.4, 0.4, 0.4) });
+  }
+  return doc.save();
+}
+$('fileJson').onchange = async (e) => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  const data = safeParse(await f.text());
+  if (!data || !Array.isArray(data.holes)) { toast('El archivo no es un respaldo válido de esta aplicación.', 4000); return; }
+  if (!S.pdf) { toast('Abre primero el plano PDF y luego importa el respaldo.', 4000); return; }
+  S.holes = data.holes; if (Array.isArray(data.types) && data.types.length) S.types = data.types;
+  S.settings = { ...S.settings, ...(data.settings || {}) };
+  uidSeq = Math.max(0, ...S.holes.map(h => h.uid)) + 1; S.sel.clear();
+  computeRadius(); save(); renderAll(); renderTypeFilter();
+  toast(data.fileName && data.fileName !== S.fileName ? `Respaldo importado (era de «${data.fileName}»). Revisa que coincida con este plano.` : `Respaldo importado: ${S.holes.length} pozos.`, 4500);
+};
+
+// ===================== Plano de ejemplo =====================
+async function buildDemoPdf() {
+  const { PDFDocument, StandardFonts, rgb } = PDFLib;
+  const doc = await PDFDocument.create(); const page = doc.addPage([792, 612]);
+  const font = await doc.embedFont(StandardFonts.Helvetica);
+  const green = rgb(0, .75, 0), red = rgb(.85, .1, .1), blue = rgb(.05, .1, .9), black = rgb(0, 0, 0);
+  page.drawRectangle({ x: 20, y: 20, width: 752, height: 572, borderColor: green, borderWidth: 1 });
+  page.drawText('PLANO DE EJEMPLO - MALLA FICTICIA', { x: 30, y: 575, size: 11, font, color: black });
+  page.drawText('Banco 3120 - Disparo D-07 - Prod: 7x7 m', { x: 30, y: 562, size: 8, font, color: black });
+  page.drawText('1200', { x: 120, y: 580, size: 8, font, color: green });
+  page.drawText('1300', { x: 620, y: 580, size: 8, font, color: green });
+  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const pts = [];
+  for (let row = 1; row <= 9; row++) {
+    for (let col = 1; col <= 11; col++) {
+      const x = 200 + col * 30 + (row % 2) * 15 + row * 4, y = 150 + row * 30;
+      if (x > 720) continue;
+      const id = String(row * 100 + col); const dep = (12 + rnd() * 4.5).toFixed(1);
+      page.drawLine({ start: { x: x - 2.5, y: y - 2.5 }, end: { x: x + 2.5, y: y + 2.5 }, thickness: .8, color: row === 1 ? blue : black });
+      page.drawLine({ start: { x: x - 2.5, y: y + 2.5 }, end: { x: x + 2.5, y: y - 2.5 }, thickness: .8, color: row === 1 ? blue : black });
+      const wi = font.widthOfTextAtSize(id, 6.5), wd = font.widthOfTextAtSize(dep, 6.5);
+      page.drawText(id, { x: x - wi / 2, y: y + 4, size: 6.5, font, color: row === 1 ? blue : black });
+      page.drawText(dep, { x: x - wd / 2, y: y - 9.5, size: 6.5, font, color: row === 1 ? red : blue });
+      pts.push({ x, y });
+    }
+  }
+  page.drawSvgPath('M 205 160 L 625 150 L 640 445 L 215 450 Z', { x: 0, y: 612, borderColor: red, borderWidth: 1 });
+  return doc.save();
+}
+async function loadDemo() {
+  const bytes = await buildDemoPdf();
+  const ok = await openPdf(bytes, 'Ejemplo - malla ficticia.pdf', { demo: true });
+  if (!ok) return;
+  // Datos ficticios para mostrar la simbología
+  let tag = 50101;
+  for (const h of S.holes) {
+    const row = Math.floor(idNum(h.id) / 100), col = idNum(h.id) % 100;
+    if (row === 1) h.type = 'T'; else if (row <= 3 || col === 1) h.type = 'D'; else if (row <= 6) h.type = 'S';
+    const t = typeOf(h);
+    if (t && row <= 5) { h.tags = Array.from({ length: t.n }, () => String(tag++)); }
+    if (row <= 4) h.dReal = Math.round((h.dDesign + (((row * 7 + col * 3) % 9) - 4) * 0.1) * 100) / 100;
+  }
+  S.sel.clear(); renderAll();
+}
+
+// ===================== Inicio =====================
+(async function init() {
+  renderPanel();
+  const last = await idbGet();
+  if (last && last.bytes) { const ok = await openPdf(new Uint8Array(last.bytes), last.name || 'plano.pdf'); if (ok) return; }
+  await loadDemo();
+})();
+})();
+</script>
+</body>
+</html>
