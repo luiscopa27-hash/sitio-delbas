@@ -95,6 +95,7 @@ button { cursor: pointer; }
 #stage { position: absolute; inset: 0; overflow: hidden; touch-action: none; cursor: grab; }
 #stage.mode-add { cursor: crosshair; }
 #stage.mode-area { cursor: cell; }
+#stage.mode-string { cursor: pointer; }
 #stage.dragging { cursor: grabbing; }
 #world { position: absolute; left: 0; top: 0; transform-origin: 0 0; box-shadow: 0 2px 14px rgba(0,0,0,.25); background: #fff; }
 #pdfCanvas { display: block; }
@@ -136,7 +137,7 @@ button { cursor: pointer; }
 .panel { min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
 .tabs { display: flex; border-bottom: 1px solid var(--line); }
 .tabs button {
-  flex: 1; border: 0; background: none; padding: 10px 6px 8px; font: 600 1rem var(--font-display); text-transform: uppercase; letter-spacing: .05em;
+  flex: 1; border: 0; background: none; padding: 10px 4px 8px; font: 600 .98rem var(--font-display); text-transform: uppercase; letter-spacing: .04em;
   color: var(--muted); border-bottom: 3px solid transparent;
 }
 .tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
@@ -166,6 +167,18 @@ button { cursor: pointer; }
 .typePick svg { width: 20px; height: 20px; }
 .typePick kbd { font: 500 .7rem var(--font-data); color: var(--muted); }
 .hint { color: var(--muted); font-size: .88rem; }
+.seqNo { font-size: 1.5rem; font-weight: 500; line-height: 36px; }
+.strList { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
+.strRow { display: grid; grid-template-columns: 22px 40px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 8px; border: 1px solid var(--line); border-radius: var(--radius); }
+.strRow.active { border-color: var(--sc); background: color-mix(in srgb, var(--sc) 9%, var(--surface)); }
+.strRow .cfg { grid-column: 2 / 5; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.strRow input[type=text], .strRow input[type=number] { border: 1px solid var(--line); background: var(--surface-2); border-radius: var(--radius); padding: 5px 8px; min-width: 0; }
+.strRow input[type=text] { font-weight: 600; width: 100%; }
+.strRow input[type=number] { width: 78px; font-family: var(--font-data); }
+.strRow input[type=color] { width: 40px; height: 30px; border: 1px solid var(--line); border-radius: var(--radius); padding: 1px; background: var(--surface); }
+.strRow .cnt { font-size: .9rem; } .strRow .cnt.over { color: var(--danger); font-weight: 700; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.colsGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 10px; }
 .dets { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
 .detsHead, .detRow { display: grid; grid-template-columns: 22px minmax(0, 1fr) 92px; gap: 8px; align-items: center; }
 .detsHead { font-size: .76rem; font-weight: 600; color: var(--muted); }
@@ -277,6 +290,8 @@ tbody tr.sel { background: color-mix(in srgb, var(--accent) 16%, var(--surface))
           <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M3 1l10 7-4.5 1L11 14l-2 1-2.5-5L3 13z"/></svg>Seleccionar</button>
         <button type="button" data-mode="area" aria-pressed="false" title="Seleccionar varios pozos con un rectángulo (A) — también Mayús+arrastrar">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="2 2" aria-hidden="true"><rect x="2" y="3" width="12" height="10"/></svg>Área</button>
+        <button type="button" data-mode="string" aria-pressed="false" title="Unir pozos en secuencia: cada toque agrega el pozo al string activo (S)">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="3" cy="12" r="1.6"/><circle cx="8" cy="4" r="1.6"/><circle cx="13" cy="11" r="1.6"/><path d="M4 10.6l3.2-5M9 5.4l3.2 4.2"/></svg>String</button>
         <button type="button" data-mode="add" aria-pressed="false" title="Agregar un pozo que no se detectó (N)">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M8 2v12M2 8h12"/></svg>Agregar pozo</button>
       </div>
@@ -301,7 +316,8 @@ tbody tr.sel { background: color-mix(in srgb, var(--accent) 16%, var(--surface))
     <div class="tabs" role="tablist">
       <button type="button" role="tab" aria-selected="true" data-tab="pozo">Pozo</button>
       <button type="button" role="tab" aria-selected="false" data-tab="lista">Listado</button>
-      <button type="button" role="tab" aria-selected="false" data-tab="simb">Simbología</button>
+      <button type="button" role="tab" aria-selected="false" data-tab="str">Strings</button>
+      <button type="button" role="tab" aria-selected="false" data-tab="simb">Vista</button>
     </div>
     <div class="tabpane" id="pane-pozo"></div>
     <div class="tabpane" id="pane-lista" hidden>
@@ -310,10 +326,11 @@ tbody tr.sel { background: color-mix(in srgb, var(--accent) 16%, var(--surface))
         <select id="fType" aria-label="Filtrar por tipo"></select>
       </div>
       <div class="tblWrap"><table>
-        <thead><tr><th>ID</th><th>Malla</th><th>Tipo</th><th>Detonadores (retardo)</th><th class="num">P. dis.</th><th class="num">P. real</th><th class="num">Taco</th><th class="num">kg</th></tr></thead>
+        <thead><tr><th>ID</th><th>Malla</th><th>Tipo</th><th>String</th><th>Detonadores (retardo)</th><th class="num">P. dis.</th><th class="num">P. real</th><th class="num">Taco</th><th class="num">kg</th></tr></thead>
         <tbody id="tblBody"></tbody>
       </table></div>
     </div>
+    <div class="tabpane" id="pane-str" hidden></div>
     <div class="tabpane" id="pane-simb" hidden></div>
   </aside>
 </main>
@@ -356,6 +373,47 @@ const STATES = [
 ];
 const MARK_WATER = '#1597d4', MARK_TAPADO = '#222222', MARK_REPASADO = '#1f9a4c';
 const EXPLOSIVE_HINTS = ['ANFO', 'ANFO pesado', 'Emulsión', 'Emulsión gasificada', 'Booster'];
+const STRING_COLORS = ['#7c3aed', '#0f8f80', '#c2410c', '#2563eb', '#be185d', '#4d7c0f', '#a16207', '#0e7490', '#9333ea', '#b91c1c', '#475569', '#15803d'];
+/** Información que se puede mostrar junto a cada pozo (en pantalla y en el plano PDF). */
+const LABEL_FIELDS = [
+  ['seq', 'N° de secuencia del string'],
+  ['tag', 'Etiqueta de cada detonador'],
+  ['delay', 'Retardo de cada detonador (ms)'],
+  ['dReal', 'Profundidad real'],
+  ['stem', 'Taco'],
+  ['charge', 'Carga de explosivo (kg)'],
+  ['expl', 'Tipo de explosivo'],
+];
+/** Columnas del informe PDF y TXT. w = ancho en PDF (pt), tw = ancho en TXT (caracteres). */
+const REPORT_COLS = [
+  { k: 'group', n: 'Malla', w: 50, tw: 12 },
+  { k: 'id', n: 'ID', w: 28, tw: 6 },
+  { k: 'str', n: 'String', w: 32, tw: 7 },
+  { k: 'seq', n: 'N° sec.', w: 30, tw: 7, right: 1 },
+  { k: 'type', n: 'Tipo', w: 36, tw: 8 },
+  { k: 'dets', n: 'Detonadores (etiqueta  retardo)', w: 118 },
+  { k: 'dd', n: 'P.dis', w: 28, tw: 6, right: 1 },
+  { k: 'dr', n: 'P.real', w: 30, tw: 7, right: 1 },
+  { k: 'diff', n: 'Dif.', w: 28, tw: 6, right: 1 },
+  { k: 'stem', n: 'Taco', w: 28, tw: 6, right: 1 },
+  { k: 'clen', n: 'L.carga', w: 32, tw: 7, right: 1 },
+  { k: 'expl', n: 'Explosivo', w: 58, tw: 14 },
+  { k: 'kg', n: 'kg', w: 30, tw: 7, right: 1 },
+  { k: 'water', n: 'Agua', w: 38, tw: 9 },
+  { k: 'state', n: 'Estado', w: 42, tw: 9 },
+  { k: 'obs', n: 'Observaciones', w: 0 },
+];
+const DEFAULT_SETTINGS = {
+  label: { seq: true, tag: true, delay: true, dReal: false, stem: false, charge: false, expl: false },
+  showMarks: true, showUnassigned: true, showStrings: true, autoString: true, stringMax: 400,
+  reportCols: Object.fromEntries(REPORT_COLS.map(c => [c.k, true])), reportSort: 'id',
+};
+function normSettings(x = {}) {
+  const o = { ...DEFAULT_SETTINGS, ...x, label: { ...DEFAULT_SETTINGS.label, ...(x.label || {}) }, reportCols: { ...DEFAULT_SETTINGS.reportCols, ...(x.reportCols || {}) } };
+  if (x.showTags !== undefined && !x.label) { o.label.tag = !!x.showTags; o.label.delay = x.showDelay !== false; }
+  delete o.showTags; delete o.showDelay;
+  return o;
+}
 
 // ===================== Estado =====================
 const S = {
@@ -364,7 +422,9 @@ const S = {
   vp: null,            // viewport escala 1 de la página actual
   holes: [],           // ver normHole()
   types: DEFAULT_TYPES.map(t => ({ ...t })),
-  settings: { showTags: true, showDelay: true, showUnassigned: true, showMarks: true },
+  settings: normSettings(),
+  strings: [],         // {id, name, color, start, holes: [uid en orden de etiquetado]}
+  activeString: null,
   sel: new Set(),
   mode: 'select',
   z: 1, tx: 0, ty: 0,
@@ -406,6 +466,50 @@ function toast(msg, ms = 2600) {
   clearTimeout(toast._t); toast._t = setTimeout(() => { t.hidden = true; }, ms);
 }
 
+// ===================== Strings de secuencia =====================
+function loadStrings(src) {
+  const uids = new Set(S.holes.map(h => h.uid));
+  S.strings = (Array.isArray(src.strings) ? src.strings : []).map((x, i) => ({
+    id: x.id || 's' + i, name: x.name || 'S' + (i + 1), color: x.color || STRING_COLORS[i % STRING_COLORS.length],
+    start: Number.isFinite(+x.start) ? +x.start : 1, holes: (x.holes || []).filter(u => uids.has(u)),
+  }));
+  S.activeString = S.strings.some(x => x.id === src.activeString) ? src.activeString : (S.strings[0]?.id ?? null);
+}
+function activeStr() { return S.strings.find(x => x.id === S.activeString) || null; }
+function newString() {
+  let n = S.strings.length + 1; while (S.strings.some(x => x.name === 'S' + n)) n++;
+  const st = { id: 's' + Date.now().toString(36) + n, name: 'S' + n, color: STRING_COLORS[(S.strings.length) % STRING_COLORS.length], start: 1, holes: [] };
+  S.strings.push(st); S.activeString = st.id; return st;
+}
+/** uid -> {s, i, n}: string, posición y N° de secuencia (inicio del string + posición). */
+function seqIndex() {
+  const m = new Map();
+  for (const st of S.strings) st.holes.forEach((u, i) => m.set(u, { s: st, i, n: st.start + i }));
+  return m;
+}
+function stringOf(uid) { return S.strings.find(x => x.holes.includes(uid)) || null; }
+function removeFromStrings(uids) { const set = new Set(uids); S.strings.forEach(x => { x.holes = x.holes.filter(u => !set.has(u)); }); }
+function appendToString(h, st) {
+  const cur = stringOf(h.uid);
+  if (cur === st) return false;
+  if (cur) cur.holes = cur.holes.filter(u => u !== h.uid);
+  st.holes.push(h.uid);
+  const max = S.settings.stringMax;
+  if (st.holes.length > max) toast(`${st.name} supera el máximo de ${max} pozos.`, 4000);
+  else toast(`Pozo ${h.id} → ${st.name} N° ${st.start + st.holes.length - 1}${cur ? ` (movido desde ${cur.name})` : ''}`);
+  return true;
+}
+/** Modo String: cada toque agrega el pozo al final del string activo; tocar el último lo quita. */
+function stringClick(h) {
+  const st = activeStr() || newString();
+  const i = st.holes.indexOf(h.uid);
+  if (i >= 0 && i === st.holes.length - 1) { st.holes.pop(); toast(`Pozo ${h.id} quitado de ${st.name}.`); }
+  else if (i >= 0) toast(`El pozo ${h.id} ya está en ${st.name} (N° ${st.start + i}).`);
+  else appendToString(h, st);
+  S.sel.clear(); S.sel.add(h.uid); S.confirm = null; save(); showTab('pozo'); renderAll(); focusFirstEmpty();
+}
+function stringRange(st) { return st.holes.length ? `N° ${st.start}–${st.start + st.holes.length - 1}` : 'vacío'; }
+
 // ===================== Persistencia local =====================
 function lsGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
 function lsSet(k, v) { try { localStorage.setItem(k, v); } catch { /* sin almacenamiento */ } }
@@ -414,7 +518,7 @@ function save() {
   if (!S.docKey || S.demo) return;
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    lsSet(STORE_PREFIX + S.docKey, JSON.stringify({ fileName: S.fileName, holes: S.holes, types: S.types, settings: S.settings, savedAt: new Date().toISOString() }));
+    lsSet(STORE_PREFIX + S.docKey, JSON.stringify({ fileName: S.fileName, holes: S.holes, types: S.types, settings: S.settings, strings: S.strings, activeString: S.activeString, savedAt: new Date().toISOString() }));
     lsSet(STORE_PREFIX + 'types', JSON.stringify(S.types));
   }, 250);
 }
@@ -522,9 +626,11 @@ async function openPdf(bytes, name, { demo = false, restore = null } = {}) {
     const stored = restore || (S.docKey ? safeParse(lsGet(STORE_PREFIX + S.docKey)) : null);
     if (stored && Array.isArray(stored.holes)) {
       S.holes = stored.holes.map(normHole); S.types = stored.types?.length ? stored.types : S.types;
-      S.settings = { ...S.settings, ...(stored.settings || {}) };
+      S.settings = normSettings({ ...S.settings, ...(stored.settings || {}) });
+      loadStrings(stored);
       uidSeq = Math.max(0, ...S.holes.map(h => h.uid)) + 1;
     } else {
+      S.strings = []; S.activeString = null;
       if (!demo) { const gt = safeParse(lsGet(STORE_PREFIX + 'types')); if (Array.isArray(gt) && gt.length) S.types = gt; }
       S.holes = [];
       for (let p = 1; p <= pdf.numPages; p++) {
@@ -590,29 +696,62 @@ function computeRadius() {
 }
 
 // ===================== Dibujo de la capa =====================
+/** Líneas de información junto al pozo, según lo elegido en Vista. */
+function labelLines(h) {
+  const L = S.settings.label, out = [];
+  if (L.tag || L.delay) for (const d of detsOf(h)) {
+    const parts = [];
+    if (L.tag && d.tag) parts.push(d.tag);
+    if (L.delay && d.delay !== null) parts.push(L.tag && d.tag ? `(${d.delay} ms)` : `${d.delay} ms`);
+    if (parts.length) out.push(parts.join(' '));
+  }
+  if (L.dReal && h.dReal !== null) out.push(`P ${fmt(h.dReal, 1)} m`);
+  if (L.stem && h.stem !== null) out.push(`T ${fmt(h.stem, 1)} m`);
+  if (L.charge && h.charge !== null) out.push(`${fmt(h.charge, 0)} kg`);
+  if (L.expl && h.expl) out.push(h.expl);
+  return out;
+}
+/** Puntos (en coordenadas de pantalla) de cada string en la página actual. */
+function stringPolys() {
+  const byUid = new Map(pageHoles().map(h => [h.uid, h]));
+  return S.strings.map(st => ({ st, pts: st.holes.map(u => byUid.get(u)).filter(Boolean).map(toScreen) })).filter(x => x.pts.length);
+}
+function stringsSvg(r) {
+  const o = [];
+  for (const { st, pts } of stringPolys()) {
+    const w = (r * (st.id === S.activeString ? .42 : .3)).toFixed(2);
+    if (pts.length > 1) o.push(`<polyline points="${pts.map(p => p.x.toFixed(2) + ',' + p.y.toFixed(2)).join(' ')}" fill="none" stroke="${st.color}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round" stroke-opacity=".85"/>`);
+    for (let i = 1; i < pts.length; i++) {
+      const a = pts[i - 1], b = pts[i]; const len = Math.hypot(b.x - a.x, b.y - a.y); if (len < r * 3) continue;
+      const ang = Math.atan2(b.y - a.y, b.x - a.x) * 180 / Math.PI, k = r * .62;
+      o.push(`<path d="M${k} 0 L${-k} ${k * .75} L${-k} ${-k * .75}Z" fill="${st.color}" transform="translate(${((a.x + b.x) / 2).toFixed(2)} ${((a.y + b.y) / 2).toFixed(2)}) rotate(${ang.toFixed(1)})"/>`);
+    }
+    const f = pts[0];
+    o.push(`<circle cx="${f.x.toFixed(2)}" cy="${f.y.toFixed(2)}" r="${(r * 2.1).toFixed(2)}" fill="none" stroke="${st.color}" stroke-width="${(r * .3).toFixed(2)}"/>`);
+    o.push(`<text x="${(f.x - r * 2.3).toFixed(2)}" y="${(f.y - r * 2.1).toFixed(2)}" text-anchor="end" font-size="${(r * 1.5).toFixed(2)}" font-weight="700" fill="${st.color}" stroke-width="${(r * .35).toFixed(2)}">${esc(st.name)}</text>`);
+  }
+  return o.join('');
+}
 function renderOverlay() {
   if (!S.vp) return;
   const r = S.r; const out = [];
-  const tagCount = tagCounts();
+  const tagCount = tagCounts(); const seq = seqIndex();
+  if (S.settings.showStrings) out.push(stringsSvg(r));
   for (const h of pageHoles()) {
-    const t = typeOf(h); const p = toScreen(h); const sel = S.sel.has(h.uid);
-    if (!t && !S.settings.showUnassigned && !sel) continue;
+    const t = typeOf(h); const p = toScreen(h); const sel = S.sel.has(h.uid); const q = seq.get(h.uid);
+    if (!t && !S.settings.showUnassigned && !sel && !q) continue;
     out.push(`<g transform="translate(${p.x.toFixed(2)} ${p.y.toFixed(2)})">`);
     if (sel) out.push(`<circle r="${(r * 1.85).toFixed(2)}" fill="none" stroke="#0d6b61" stroke-width="${(r * .35).toFixed(2)}" stroke-opacity=".9"/>`);
-    if (t) {
-      symbolPaths(t.symbol, r).forEach((d, i) => out.push(`<path d="${d}" fill="${i === 0 ? t.color : 'none'}" fill-opacity=".28" stroke="${t.color}" stroke-width="${(r * .26).toFixed(2)}"/>`));
-      if (S.settings.showTags) {
-        const ds = detsOf(h).filter(d => d.tag);
-        if (ds.length) {
-          const dup = ds.some(d => tagCount.get(d.tag) > 1);
-          const fs = r * 0.95, y0 = -((ds.length - 1) * fs) / 2 + fs * 0.35;
-          out.push(`<text font-size="${fs.toFixed(2)}" fill="${dup ? '#b4233c' : t.color}" stroke-width="${(r * .28).toFixed(2)}">${ds.map((d, i) =>
-            `<tspan x="${(r * 1.45).toFixed(2)}" y="${(y0 + i * fs).toFixed(2)}">${esc(detLabel(d, S.settings.showDelay))}</tspan>`).join('')}</text>`);
-        }
-      }
-    } else {
-      out.push(`<circle r="${(r * .8).toFixed(2)}" fill="none" stroke="#6b7774" stroke-width="${(r * .14).toFixed(2)}" stroke-dasharray="${(r * .35).toFixed(2)} ${(r * .3).toFixed(2)}"/>`);
+    if (t) symbolPaths(t.symbol, r).forEach((d, i) => out.push(`<path d="${d}" fill="${i === 0 ? t.color : 'none'}" fill-opacity=".28" stroke="${t.color}" stroke-width="${(r * .26).toFixed(2)}"/>`));
+    else out.push(`<circle r="${(r * .8).toFixed(2)}" fill="none" stroke="#6b7774" stroke-width="${(r * .14).toFixed(2)}" stroke-dasharray="${(r * .35).toFixed(2)} ${(r * .3).toFixed(2)}"/>`);
+    const lines = labelLines(h);
+    if (lines.length) {
+      const dup = detsOf(h).some(d => d.tag && tagCount.get(d.tag) > 1);
+      const fs = r * 0.95, y0 = -((lines.length - 1) * fs) / 2 + fs * 0.35;
+      out.push(`<text font-size="${fs.toFixed(2)}" fill="${dup ? '#b4233c' : t ? t.color : '#3b4745'}" stroke-width="${(r * .28).toFixed(2)}">${lines.map((x, i) =>
+        `<tspan x="${(r * 1.45).toFixed(2)}" y="${(y0 + i * fs).toFixed(2)}">${esc(x)}</tspan>`).join('')}</text>`);
     }
+    if (q && S.settings.label.seq) out.push(`<text x="${(-r * 2.15).toFixed(2)}" y="${(r * .42).toFixed(2)}" text-anchor="end" font-size="${(r * 1.2).toFixed(2)}" font-weight="700" fill="${q.s.color}" stroke-width="${(r * .32).toFixed(2)}">${q.n}</text>`);
     if (S.settings.showMarks) out.push(marksSvg(h, r));
     out.push('</g>');
   }
@@ -647,7 +786,7 @@ function renderLegend() {
        <span class="mk" style="background:${MARK_TAPADO}"></span>Tapado <span class="mk" style="background:${MARK_REPASADO};border-radius:50%"></span>Repasado</div>` : '');
 }
 
-function renderAll() { renderOverlay(); renderLegend(); renderPanel(); renderTable(); }
+function renderAll() { renderOverlay(); renderLegend(); renderPanel(); renderTable(); renderStrings(); }
 
 // ===================== Zoom y desplazamiento =====================
 function applyXf() { $('world').style.transform = `translate(${S.tx}px, ${S.ty}px) scale(${S.z})`; }
@@ -725,6 +864,7 @@ function endPtr(e) {
   if (g.moved) return;
   const w = worldPt(p.x, p.y);
   if (S.mode === 'add') { addHoleAt(w.x, w.y); return; }
+  if (S.mode === 'string') { const hs = hitHole(w.x, w.y); if (hs) stringClick(hs); else toast('Toca un pozo para agregarlo al string activo.'); return; }
   const h = hitHole(w.x, w.y);
   if (h) {
     if (e.ctrlKey || e.metaKey || e.shiftKey) { S.sel.has(h.uid) ? S.sel.delete(h.uid) : S.sel.add(h.uid); }
@@ -746,6 +886,8 @@ $('pageNext').onclick = async () => { if (S.pageNum < S.pageCount) { S.pageNum++
 
 function setMode(m) {
   S.mode = m;
+  if (m === 'string' && !S.strings.length) newString();
+  if (m === 'string') { const st = activeStr(); toast(`Modo String: toca los pozos en orden. String activo: ${st.name} (${stringRange(st)}).`, 3500); renderOverlay(); }
   document.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === m)));
   stage.className = m === 'select' ? '' : 'mode-' + m;
 }
@@ -795,6 +937,9 @@ function renderPanel() {
     pane.innerHTML = `<div class="holeHead"><div><p class="eyebrow">Selección múltiple</p><div class="num">${sel.length} pozos</div></div></div>
       <div class="field"><span class="lbl">Detonadores por pozo</span>${typeButtons(same('type') ?? '__mixed')}</div>
       <div class="field"><span class="lbl">Estado</span>${stateButtons(same('state') ?? '__mixed')}</div>
+      <div class="field"><span class="lbl">String</span><div class="rowBtns">
+        <button class="btn small" type="button" id="mAddStr">Agregar a ${esc(activeStr()?.name || 'un string nuevo')} (orden por ID)</button>
+        <button class="btn small" type="button" id="mRemStr">Quitar de los strings</button></div></div>
       <p class="eyebrow" style="margin-top:14px">Datos comunes</p>
       <p class="hint">Solo se aplican los campos que completes.</p>
       <div class="grid2">
@@ -822,6 +967,13 @@ function renderPanel() {
       save(); renderAll(); toast(n ? `Datos aplicados a ${sel.length} pozos.` : 'Completa al menos un campo para aplicar.');
     };
     $('clearSel').onclick = () => { S.sel.clear(); renderAll(); };
+    $('mAddStr').onclick = () => {
+      const st = activeStr() || newString(); let n = 0;
+      for (const h of [...sel].sort(byId)) if (stringOf(h.uid) !== st) { removeFromStrings([h.uid]); st.holes.push(h.uid); n++; }
+      save(); renderAll(); toast(`${n} pozos agregados a ${st.name} (${stringRange(st)}).`);
+      if (st.holes.length > S.settings.stringMax) toast(`${st.name} supera el máximo de ${S.settings.stringMax} pozos.`, 4000);
+    };
+    $('mRemStr').onclick = () => { removeFromStrings(sel.map(h => h.uid)); save(); renderAll(); toast('Pozos quitados de los strings.'); };
     if (confirming) { $('delYes').onclick = () => deleteHoles(sel); $('delNo').onclick = () => { S.confirm = null; renderPanel(); }; }
     else $('delMany').onclick = () => { S.confirm = 'delmany'; renderPanel(); };
     pane.querySelectorAll('tr[data-uid]').forEach(tr => tr.onclick = () => { S.sel.clear(); S.sel.add(+tr.dataset.uid); renderAll(); });
@@ -847,6 +999,7 @@ function renderPanel() {
     </div>
     <div class="field"><span class="lbl">Detonadores por pozo</span>${typeButtons(h.type)}</div>
     ${detHtml || '<p class="hint">Elige Simple, Doble o Triple para cargar la etiqueta y el retardo de cada detonador.</p>'}
+    ${stringSectionHtml(h)}
     <p class="eyebrow" style="margin-top:14px">Perforación</p>
     <div class="grid2">
       <div class="field"><label for="f-dd">Prof. diseño (m)</label><input id="f-dd" class="mono" inputmode="decimal" value="${h.dDesign === null ? '' : h.dDesign.toFixed(1)}"></div>
@@ -875,14 +1028,16 @@ function renderPanel() {
       ${confirming ? `<span class="hint">¿Eliminar el pozo ${esc(h.id)}?</span><button class="btn small danger solid" type="button" id="delYes">Eliminar</button><button class="btn small" type="button" id="delNo">Cancelar</button>`
         : `<button class="btn small danger" type="button" id="delOne">Eliminar pozo</button>`}
     </div>`;
-  updDiff(h);
+  updDiff(h); bindStrSec(h);
   const det = (i) => { while (h.dets.length <= i) h.dets.push({ tag: '', delay: null }); return h.dets[i]; };
   const nextFrom = (el) => { const all = [...pane.querySelectorAll('[data-tag],[data-delay],#f-dr')]; const nx = all[all.indexOf(el) + 1]; if (nx) { nx.focus(); nx.select?.(); } };
   pane.querySelectorAll('[data-settype]').forEach(b => b.onclick = () => setTypeSel(b.dataset.settype));
   pane.querySelectorAll('[data-setstate]').forEach(b => b.onclick = () => { h.state = b.dataset.setstate; save(); renderAll(); });
   pane.querySelectorAll('[data-tag]').forEach(inp => {
     inp.oninput = () => {
-      const d = det(+inp.dataset.tag); d.tag = inp.value.trim().toUpperCase(); save(); renderOverlay(); renderTable();
+      const d = det(+inp.dataset.tag); d.tag = inp.value.trim().toUpperCase();
+      if (d.tag && S.settings.autoString && !stringOf(h.uid)) { appendToString(h, activeStr() || newString()); refreshStrSec(h); renderStrings(); }
+      save(); renderOverlay(); renderTable();
       const c = tagCounts(); pane.querySelectorAll('[data-warn]').forEach(w => { const v = h.dets[+w.dataset.warn]?.tag; w.hidden = !(v && c.get(v) > 1); });
     };
     inp.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); nextFrom(inp); } };
@@ -907,6 +1062,24 @@ function renderPanel() {
   if (confirming) { $('delYes').onclick = () => deleteHoles([h]); $('delNo').onclick = () => { S.confirm = null; renderPanel(); }; }
   else $('delOne').onclick = () => { S.confirm = 'del'; renderPanel(); };
 }
+function stringSectionHtml(h) {
+  const q = seqIndex().get(h.uid);
+  return `<div class="grid2 strSec">
+    <div class="field"><label for="f-str">String</label><select id="f-str"><option value="">Sin string</option>${S.strings.map(st =>
+      `<option value="${st.id}" ${q && q.s === st ? 'selected' : ''}>${esc(st.name)} · ${st.holes.length} pozos</option>`).join('')}<option value="__new">+ Nuevo string</option></select></div>
+    <div class="field"><span class="lbl">N° de secuencia</span><div class="seqNo mono" style="color:${q ? q.s.color : 'var(--muted)'}">${q ? q.n : '—'}</div></div>
+  </div>`;
+}
+function bindStrSec(h) {
+  const el = $('f-str'); if (!el) return;
+  el.onchange = () => {
+    const v = el.value;
+    if (!v) { removeFromStrings([h.uid]); toast(`Pozo ${h.id} quitado de su string.`); }
+    else { const st = v === '__new' ? newString() : S.strings.find(x => x.id === v); S.activeString = st.id; appendToString(h, st); }
+    save(); renderAll();
+  };
+}
+function refreshStrSec(h) { const sec = document.querySelector('#pane-pozo .strSec'); if (!sec) return; sec.outerHTML = stringSectionHtml(h); bindStrSec(h); }
 function updDiff(h) {
   const el = $('diffLine'); if (!el) return;
   const diff = h.dReal !== null && h.dDesign !== null ? h.dReal - h.dDesign : null;
@@ -934,7 +1107,7 @@ function step(dir) {
 }
 function deleteHoles(list) {
   const ids = new Set(list.map(h => h.uid));
-  S.holes = S.holes.filter(h => !ids.has(h.uid)); S.sel.clear(); S.confirm = null; save(); renderAll();
+  S.holes = S.holes.filter(h => !ids.has(h.uid)); removeFromStrings(ids); S.sel.clear(); S.confirm = null; save(); renderAll();
   toast(list.length === 1 ? 'Pozo eliminado.' : `${list.length} pozos eliminados.`);
 }
 
@@ -987,14 +1160,14 @@ function pending(h) { const ds = detsOf(h); return !typeOf(h) || ds.some(d => !d
 function renderTable() {
   if ($('pane-lista').hidden) return;
   const q = $('fText').value.trim().toLowerCase(); const ft = $('fType').value;
-  const dups = dupIds();
+  const dups = dupIds(); const seq = seqIndex();
   const rows = S.holes.filter(h => {
     if (ft === '@agua') { if (!h.water) return false; }
     else if (ft === '@tapado' || ft === '@repasado') { if (h.state !== ft.slice(1)) return false; }
     else if (ft === '@pend') { if (!pending(h)) return false; }
     else if (ft !== '*' && (typeOf(h) ? h.type : '') !== ft) return false;
     if (!q) return true;
-    return [h.id, h.group, h.obs, h.expl, ...h.dets.map(d => d.tag)].some(v => String(v || '').toLowerCase().includes(q));
+    return [h.id, h.group, h.obs, h.expl, seq.get(h.uid)?.s.name, ...h.dets.map(d => d.tag)].some(v => String(v || '').toLowerCase().includes(q));
   }).sort((a, b) => a.page - b.page || byId(a, b));
   $('tblBody').innerHTML = rows.map(h => {
     const dup = dups.get(h.page + '|' + (h.group || '') + '|' + h.id) > 1;
@@ -1002,9 +1175,10 @@ function renderTable() {
     return `<tr data-uid="${h.uid}" class="${S.sel.has(h.uid) ? 'sel' : ''}">
       <td class="mono">${esc(h.id)}${dup ? ' <span class="dupMark" title="ID repetido">!</span>' : ''}${S.pageCount > 1 ? `<span class="hint"> p${h.page}</span>` : ''} ${marks}</td>
       <td>${esc(h.group || '')}</td><td>${chip(h)}</td>
+      <td class="mono">${seq.has(h.uid) ? `<span style="color:${seq.get(h.uid).s.color}">${esc(seq.get(h.uid).s.name)} · ${seq.get(h.uid).n}</span>` : ''}</td>
       <td class="mono">${esc(detsOf(h).filter(d => d.tag).map(d => detLabel(d)).join(' / '))}</td>
       <td class="num">${fmt(h.dDesign)}</td><td class="num">${fmt(h.dReal)}</td><td class="num">${fmt(h.stem)}</td><td class="num">${fmt(h.charge)}</td></tr>`;
-  }).join('') || `<tr><td colspan="8" class="hint">Sin pozos para este filtro.</td></tr>`;
+  }).join('') || `<tr><td colspan="9" class="hint">Sin pozos para este filtro.</td></tr>`;
   $('tblBody').querySelectorAll('tr[data-uid]').forEach(tr => tr.onclick = async () => {
     const h = S.holes.find(x => x.uid === +tr.dataset.uid); if (!h) return;
     if (h.page !== S.pageNum) { S.pageNum = h.page; await renderPage(); }
@@ -1014,12 +1188,90 @@ function renderTable() {
 }
 $('fText').oninput = renderTable; $('fType').onchange = renderTable;
 
-// ===================== Panel: simbología =====================
+// ===================== Panel: strings =====================
+function renderStrings() {
+  const pane = $('pane-str'); if (pane.hidden) return;
+  const seq = seqIndex(); const max = S.settings.stringMax;
+  const taggedNoStr = S.holes.filter(h => !seq.has(h.uid) && detsOf(h).some(d => d.tag)).length;
+  const btns = (st, i) => {
+    if (S.confirm === 'clr:' + st.id) return `<span class="hint">¿Vaciar ${esc(st.name)}?</span><button class="btn small danger solid" type="button" data-sact="clrYes" data-i="${i}">Vaciar</button><button class="btn small" type="button" data-sact="no">Cancelar</button>`;
+    if (S.confirm === 'del:' + st.id) return `<span class="hint">¿Eliminar ${esc(st.name)}?</span><button class="btn small danger solid" type="button" data-sact="delYes" data-i="${i}">Eliminar</button><button class="btn small" type="button" data-sact="no">Cancelar</button>`;
+    return `<button class="btn small" type="button" data-sact="pop" data-i="${i}" title="Quita el último pozo agregado">Quitar último</button>
+      <button class="btn small" type="button" data-sact="rev" data-i="${i}" title="Invierte el sentido de la secuencia">Invertir</button>
+      <button class="btn small" type="button" data-sact="clr" data-i="${i}">Vaciar</button>
+      <button class="btn small danger" type="button" data-sact="del" data-i="${i}">Eliminar</button>`;
+  };
+  pane.innerHTML = `
+    <p class="eyebrow">Strings de secuencia</p>
+    <p class="hint">Un string une los pozos en el orden en que se etiquetan. Marca el string activo y usa el modo <b>String</b> del plano: cada toque agrega el pozo al final y tocar el último lo quita. El N° de secuencia parte en el número de inicio que definas.</p>
+    <div class="strList">
+    ${S.strings.map((st, i) => { const act = st.id === S.activeString; return `
+      <div class="strRow ${act ? 'active' : ''}" style="--sc:${st.color}">
+        <label title="String activo"><input type="radio" name="actStr" value="${st.id}" ${act ? 'checked' : ''}><span class="sr">Activo ${esc(st.name)}</span></label>
+        <input type="color" id="sc-${i}" value="${st.color}" aria-label="Color de ${esc(st.name)}">
+        <input type="text" id="sn-${i}" value="${esc(st.name)}" aria-label="Nombre del string">
+        <span class="cnt mono ${st.holes.length > max ? 'over' : ''}" title="Pozos / máximo">${st.holes.length}/${max}</span>
+        <div class="cfg"><label class="hint" for="ss-${i}">Inicia en N°</label><input type="number" id="ss-${i}" value="${st.start}" step="1"><span class="hint mono">${stringRange(st)}</span></div>
+        <div class="cfg">${btns(st, i)}</div>
+      </div>`; }).join('') || '<p class="hint">Aún no hay strings. Crea uno o empieza a etiquetar pozos: el primero se crea solo.</p>'}
+    </div>
+    <div class="rowBtns">
+      <button class="btn small primary" type="button" id="strNew">+ Nuevo string</button>
+      <button class="btn small" type="button" id="strCont" title="Cada string continúa la numeración del anterior">Numeración continua</button>
+      <button class="btn small" type="button" id="strMode">Ir al modo String</button>
+    </div>
+    <div class="sectionGap"></div>
+    <p class="eyebrow">Opciones</p>
+    <div class="field" style="max-width:220px"><label for="strMax">Máximo de pozos por string</label><input id="strMax" class="mono" type="number" min="1" value="${max}"></div>
+    <label class="check"><input type="checkbox" id="strAuto" ${S.settings.autoString ? 'checked' : ''}> Al cargar la etiqueta de un pozo, agregarlo al string activo</label>
+    <label class="check"><input type="checkbox" id="strShow" ${S.settings.showStrings ? 'checked' : ''}> Dibujar los strings en el plano</label>
+    <p class="hint" style="margin-top:10px">${S.strings.length} strings · ${seq.size} pozos en strings · ${taggedNoStr} pozos etiquetados sin string.</p>`;
+  const done = () => { save(); renderAll(); };
+  pane.querySelectorAll('[name=actStr]').forEach(r => r.onchange = () => { S.activeString = r.value; done(); });
+  S.strings.forEach((st, i) => {
+    $('sc-' + i).oninput = (e) => { st.color = e.target.value; save(); renderOverlay(); };
+    $('sc-' + i).onchange = done;
+    $('sn-' + i).onchange = (e) => { st.name = e.target.value.trim() || st.name; done(); };
+    $('ss-' + i).onchange = (e) => { const v = parseInt(e.target.value, 10); st.start = Number.isFinite(v) ? v : 1; done(); };
+  });
+  pane.querySelectorAll('[data-sact]').forEach(b => b.onclick = () => {
+    const st = S.strings[+b.dataset.i]; const a = b.dataset.sact;
+    if (a === 'no') S.confirm = null;
+    else if (a === 'pop') st.holes.pop();
+    else if (a === 'rev') st.holes.reverse();
+    else if (a === 'clr') S.confirm = 'clr:' + st.id;
+    else if (a === 'del') S.confirm = 'del:' + st.id;
+    else if (a === 'clrYes') { st.holes = []; S.confirm = null; }
+    else if (a === 'delYes') { S.strings.splice(+b.dataset.i, 1); if (S.activeString === st.id) S.activeString = S.strings[0]?.id ?? null; S.confirm = null; }
+    done();
+  });
+  $('strNew').onclick = () => { const st = newString(); const prev = S.strings[S.strings.length - 2]; if (prev && S.settings.continuous) st.start = prev.start + prev.holes.length; done(); toast(`${st.name} creado y activo.`); };
+  $('strCont').onclick = () => { for (let i = 1; i < S.strings.length; i++) S.strings[i].start = S.strings[i - 1].start + S.strings[i - 1].holes.length; S.settings.continuous = true; done(); toast('Numeración continua aplicada.'); };
+  $('strMode').onclick = () => setMode('string');
+  $('strMax').onchange = (e) => { S.settings.stringMax = Math.max(1, parseInt(e.target.value, 10) || 400); done(); };
+  $('strAuto').onchange = (e) => { S.settings.autoString = e.target.checked; save(); };
+  $('strShow').onchange = (e) => { S.settings.showStrings = e.target.checked; save(); renderOverlay(); };
+}
+
+// ===================== Panel: vista y simbología =====================
 function renderSimb() {
   const counts = new Map(); for (const h of S.holes) if (h.type) counts.set(h.type, (counts.get(h.type) || 0) + 1);
   const opts = (cur) => Object.entries(SYMBOLS).map(([k, v]) => `<option value="${k}" ${k === cur ? 'selected' : ''}>${v}</option>`).join('');
+  const L = S.settings.label, RC = S.settings.reportCols;
   $('pane-simb').innerHTML = `
-    <p class="eyebrow">Detonadores por pozo</p>
+    <p class="eyebrow">Información en el plano</p>
+    <p class="hint">Elige qué mostrar junto a cada pozo. Se aplica en pantalla y en el plano anotado PDF.</p>
+    ${LABEL_FIELDS.map(([k, n]) => `<label class="check"><input type="checkbox" data-lbl="${k}" ${L[k] ? 'checked' : ''}> ${n}</label>`).join('')}
+    <label class="check"><input type="checkbox" id="optStr" ${S.settings.showStrings ? 'checked' : ''}> Líneas de los strings</label>
+    <label class="check"><input type="checkbox" id="optMarks" ${S.settings.showMarks ? 'checked' : ''}> Marcas de agua, tapado y repasado</label>
+    <label class="check"><input type="checkbox" id="optUn" ${S.settings.showUnassigned ? 'checked' : ''}> Pozos sin tipo (círculo punteado)</label>
+    <div class="sectionGap"></div>
+    <p class="eyebrow">Columnas del informe (PDF y TXT)</p>
+    <div class="colsGrid">${REPORT_COLS.map(c => `<label class="check"><input type="checkbox" data-rcol="${c.k}" ${RC[c.k] ? 'checked' : ''}> ${c.k === 'dets' ? 'Detonadores' : c.n}</label>`).join('')}</div>
+    <div class="field" style="margin-top:8px"><label for="optSort">Orden de los pozos en informes</label>
+      <select id="optSort"><option value="id" ${S.settings.reportSort === 'id' ? 'selected' : ''}>Por malla e ID de pozo</option><option value="seq" ${S.settings.reportSort === 'seq' ? 'selected' : ''}>Por string y N° de secuencia</option></select></div>
+    <div class="sectionGap"></div>
+    <p class="eyebrow">Simbología: detonadores por pozo</p>
     <p class="hint">Cada tipo define el color, el símbolo en el plano y cuántos detonadores lleva el pozo (cada uno con su etiqueta y retardo).</p>
     ${S.types.map((t, i) => `<div class="typeRow" data-i="${i}">
       <span>${symbolSvg(t, 28)}</span>
@@ -1033,12 +1285,6 @@ function renderSimb() {
           : `<button class="btn small danger" type="button" data-tdel="${i}" title="Quitar tipo">Quitar</button>`}
       </div></div>`).join('')}
     <div class="rowBtns" style="margin-top:10px"><button class="btn small" type="button" id="addType">+ Agregar tipo</button><button class="btn small" type="button" id="resetTypes">Restablecer Simple / Doble / Triple</button></div>
-    <div class="sectionGap"></div>
-    <p class="eyebrow">Vista del plano</p>
-    <label class="check"><input type="checkbox" id="optTags" ${S.settings.showTags ? 'checked' : ''}> Mostrar etiquetas junto al pozo</label>
-    <label class="check"><input type="checkbox" id="optDelay" ${S.settings.showDelay ? 'checked' : ''}> Incluir el retardo (ms) junto a la etiqueta</label>
-    <label class="check"><input type="checkbox" id="optMarks" ${S.settings.showMarks ? 'checked' : ''}> Mostrar marcas de agua, tapado y repasado</label>
-    <label class="check"><input type="checkbox" id="optUn" ${S.settings.showUnassigned ? 'checked' : ''}> Mostrar pozos sin tipo (círculo punteado)</label>
     <div class="sectionGap"></div>
     <p class="eyebrow">Detección</p>
     <p class="hint">Se detectaron ${S.holes.filter(h => !h.manual).length} pozos desde el texto del plano y ${S.holes.filter(h => h.manual).length} se agregaron a mano.</p>
@@ -1066,13 +1312,15 @@ function renderSimb() {
     for (const d of DEFAULT_TYPES) { const t = S.types.find(x => x.key === d.key); if (t) Object.assign(t, d); else S.types.push({ ...d }); }
     commitTypes();
   };
-  $('optTags').onchange = (e) => { S.settings.showTags = e.target.checked; save(); renderOverlay(); };
-  $('optDelay').onchange = (e) => { S.settings.showDelay = e.target.checked; save(); renderOverlay(); };
+  document.querySelectorAll('[data-lbl]').forEach(c => c.onchange = () => { S.settings.label[c.dataset.lbl] = c.checked; save(); renderOverlay(); });
+  document.querySelectorAll('[data-rcol]').forEach(c => c.onchange = () => { S.settings.reportCols[c.dataset.rcol] = c.checked; save(); });
+  $('optSort').onchange = (e) => { S.settings.reportSort = e.target.value; save(); };
+  $('optStr').onchange = (e) => { S.settings.showStrings = e.target.checked; save(); renderOverlay(); };
   $('optMarks').onchange = (e) => { S.settings.showMarks = e.target.checked; save(); renderOverlay(); renderLegend(); };
   $('optUn').onchange = (e) => { S.settings.showUnassigned = e.target.checked; save(); renderOverlay(); };
   if ($('redetect')) $('redetect').onclick = () => { S.confirm = 'redetect'; renderSimb(); };
   if ($('redetYes')) $('redetYes').onclick = async () => {
-    S.confirm = null; S.holes = []; S.sel.clear();
+    S.confirm = null; S.holes = []; S.strings = []; S.activeString = null; S.sel.clear();
     for (let p = 1; p <= S.pageCount; p++) { const pg = await S.pdf.getPage(p); S.holes.push(...detectHoles((await pg.getTextContent()).items, p)); }
     computeRadius(); save(); renderAll(); renderSimb(); toast(`${S.holes.length} pozos detectados.`);
   };
@@ -1085,7 +1333,8 @@ function commitTypes(full = true) {
 
 function showTab(name) {
   document.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === name)));
-  for (const n of ['pozo', 'lista', 'simb']) $('pane-' + n).hidden = n !== name;
+  for (const n of ['pozo', 'lista', 'str', 'simb']) $('pane-' + n).hidden = n !== name;
+  if (name === 'str') { S.confirm = null; renderStrings(); }
   if (name === 'lista') { renderTypeFilter(); renderTable(); }
   if (name === 'simb') { S.confirm = null; renderSimb(); }
 }
@@ -1104,6 +1353,11 @@ document.addEventListener('keydown', (e) => {
   else if (e.key === 'v' || e.key === 'V') setMode('select');
   else if (e.key === 'a' || e.key === 'A') setMode('area');
   else if (e.key === 'n' || e.key === 'N') setMode('add');
+  else if (e.key === 's' || e.key === 'S') setMode('string');
+  else if (e.key === 'Backspace' && S.mode === 'string') {
+    const st = activeStr(); if (st && st.holes.length) { const u = st.holes.pop(); const h = S.holes.find(x => x.uid === u); save(); renderAll(); toast(`Pozo ${h?.id ?? ''} quitado de ${st.name}.`); }
+    e.preventDefault();
+  }
 });
 
 // ===================== Abrir archivos =====================
@@ -1146,7 +1400,7 @@ menu.querySelectorAll('[data-exp]').forEach(b => b.onclick = async () => {
     if (k === 'txt') await saveFile(baseName() + '_informe.txt', '﻿' + buildTxt());
     if (k === 'csv') await saveFile(baseName() + '_pozos.csv', '﻿' + buildCsv());
     if (k === 'csv-det') await saveFile(baseName() + '_detonadores.csv', '﻿' + buildCsvDets());
-    if (k === 'json') await saveFile(baseName() + '_respaldo.json', JSON.stringify({ app: 'malla-tronadura', version: 2, fileName: S.fileName, docKey: S.docKey, exportedAt: new Date().toISOString(), types: S.types, settings: S.settings, holes: S.holes }, null, 1));
+    if (k === 'json') await saveFile(baseName() + '_respaldo.json', JSON.stringify({ app: 'malla-tronadura', version: 2, fileName: S.fileName, docKey: S.docKey, exportedAt: new Date().toISOString(), types: S.types, settings: S.settings, strings: S.strings, activeString: S.activeString, holes: S.holes }, null, 1));
   } catch (err) { console.error(err); toast('No se pudo exportar: ' + (err.message || err.code || err), 5000); }
 });
 function baseName() { return (S.fileName || 'malla').replace(/\.pdf$/i, '').replace(/[^\w\-]+/g, '_'); }
@@ -1163,16 +1417,28 @@ async function saveFile(name, data) {
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   toast('Descargando ' + name);
 }
-function sortedHoles() { return [...S.holes].sort((a, b) => a.page - b.page || byId(a, b)); }
+/** Orden de informes: por malla e ID, o por string y N° de secuencia (los pozos sin string van al final). */
+function sortedHoles(mode = S.settings.reportSort) {
+  const list = [...S.holes];
+  if (mode !== 'seq') return list.sort((a, b) => a.page - b.page || byId(a, b));
+  const seq = seqIndex(); const order = new Map(S.strings.map((st, i) => [st.id, i]));
+  return list.sort((a, b) => {
+    const qa = seq.get(a.uid), qb = seq.get(b.uid);
+    if (qa && qb) return order.get(qa.s.id) - order.get(qb.s.id) || qa.i - qb.i;
+    if (qa || qb) return qa ? -1 : 1;
+    return a.page - b.page || byId(a, b);
+  });
+}
 const dec = (v, d = 2) => v === null || v === undefined ? '' : v.toFixed(d).replace('.', ',');
 const nowCl = () => new Date().toLocaleString('es-CL');
 
-/** Filas del informe (mismas columnas en PDF y TXT). */
+/** Filas del informe (mismas claves que REPORT_COLS; se usan en PDF y TXT). */
 function reportRows() {
+  const seq = seqIndex();
   return sortedHoles().map(h => {
-    const t = typeOf(h); const diff = h.dReal !== null && h.dDesign !== null ? h.dReal - h.dDesign : null;
+    const t = typeOf(h); const diff = h.dReal !== null && h.dDesign !== null ? h.dReal - h.dDesign : null; const q = seq.get(h.uid);
     return {
-      group: h.group || '', id: String(h.id), type: t ? t.name : 'Sin tipo',
+      group: h.group || '', id: String(h.id), str: q ? q.s.name : '', seq: q ? String(q.n) : '', type: t ? t.name : 'Sin tipo',
       dets: detsOf(h).map((d, i) => `${i + 1}) ${d.tag || '—'}  ${d.delay !== null ? d.delay + ' ms' : '— ms'}`),
       dd: dec(h.dDesign, 1), dr: dec(h.dReal, 2), diff: diff === null ? '' : (diff > 0 ? '+' : '') + dec(diff, 2),
       stem: dec(h.stem, 2), clen: dec(chargeLen(h), 2), expl: h.expl || '', kg: dec(h.charge, 1),
@@ -1181,6 +1447,7 @@ function reportRows() {
     };
   });
 }
+function reportCols() { return REPORT_COLS.filter(c => S.settings.reportCols[c.k] !== false); }
 function summaryLines() {
   const s = stats();
   const groups = [...new Set(S.holes.map(h => h.group).filter(Boolean))];
@@ -1194,26 +1461,27 @@ function summaryLines() {
     `Explosivo total: ${dec(s.kg, 1)} kg (${s.nKg} pozos)` + (s.byExpl.size ? '  |  ' + [...s.byExpl].map(([k, v]) => `${k}: ${dec(v, 1)} kg`).join('  |  ') : ''),
     `Pozos con agua: ${s.water}  |  Tapados: ${s.tapado}  |  Repasados: ${s.repasado}`,
   ];
+  if (S.strings.length) L.push(`Strings: ` + S.strings.map(st => `${st.name} ${stringRange(st)} (${st.holes.length} pozos)`).join('  |  '));
   if (s.dupTags.length) L.push(`ATENCIÓN - etiquetas repetidas: ${s.dupTags.join(', ')}`);
+  const over = S.strings.filter(st => st.holes.length > S.settings.stringMax);
+  if (over.length) L.push(`ATENCIÓN - strings sobre el máximo de ${S.settings.stringMax} pozos: ${over.map(st => st.name).join(', ')}`);
   return L;
 }
 
 function buildTxt() {
-  const rows = reportRows();
-  const cols = [
-    ['Malla', 'group', 12], ['ID', 'id', 6], ['Tipo', 'type', 8], ['P.dis', 'dd', 6, 1], ['P.real', 'dr', 7, 1], ['Dif', 'diff', 6, 1],
-    ['Taco', 'stem', 6, 1], ['L.carga', 'clen', 7, 1], ['Explosivo', 'expl', 14], ['kg', 'kg', 7, 1], ['Agua', 'water', 9], ['Estado', 'state', 9],
-  ];
+  const rows = reportRows(); const sel = reportCols();
+  const cols = sel.filter(c => c.tw);
+  const showDets = sel.some(c => c.k === 'dets'), showObs = sel.some(c => c.k === 'obs');
   const cell = (v, w, right) => { v = String(v ?? ''); if (v.length > w) v = v.slice(0, w - 1) + '~'; return right ? v.padStart(w) : v.padEnd(w); };
-  const line = (r) => cols.map(([, k, w, right]) => cell(r[k], w, right)).join(' ');
-  const head = cols.map(([n, , w, right]) => cell(n, w, right)).join(' ');
-  const out = ['INFORME DE MALLA DE TRONADURA', '='.repeat(head.length), ...summaryLines(), '', head, '-'.repeat(head.length)];
+  const head = cols.map(c => cell(c.n, c.tw, c.right)).join(' ');
+  const width = Math.max(head.length, 60), ind = ' '.repeat(Math.min(8, width));
+  const out = ['INFORME DE MALLA DE TRONADURA', '='.repeat(width), ...summaryLines(), '', head, '-'.repeat(width)];
   for (const r of rows) {
-    out.push(line(r));
-    r.dets.forEach(d => out.push(' '.repeat(28) + 'Det. ' + d));
-    if (r.obs) out.push(' '.repeat(28) + 'Obs.: ' + r.obs);
+    out.push(cols.map(c => cell(r[c.k], c.tw, c.right)).join(' '));
+    if (showDets) r.dets.forEach(d => out.push(ind + 'Det. ' + d));
+    if (showObs && r.obs) out.push(ind + 'Obs.: ' + r.obs);
   }
-  out.push('-'.repeat(head.length), 'P.dis/P.real/Dif/Taco/L.carga en metros. L.carga = profundidad (real o diseño) - taco. Retardos en ms.');
+  out.push('-'.repeat(width), 'Profundidades, diferencia, taco y largo de carga en metros. L.carga = profundidad (real o diseño) - taco. Retardos en ms.');
   return out.join('\r\n') + '\r\n';
 }
 function csvJoin(rows) {
@@ -1221,14 +1489,14 @@ function csvJoin(rows) {
   return rows.map(r => r.map(q).join(';')).join('\r\n');
 }
 function buildCsv() {
-  const maxN = Math.max(1, ...S.types.map(t => t.n));
-  const head = ['Página', 'Malla', 'ID pozo', 'Tipo', 'N° detonadores'];
+  const maxN = Math.max(1, ...S.types.map(t => t.n)); const seq = seqIndex();
+  const head = ['Página', 'Malla', 'ID pozo', 'String', 'N° secuencia', 'Tipo', 'N° detonadores'];
   for (let i = 1; i <= maxN; i++) head.push(`Det ${i} etiqueta`, `Det ${i} retardo (ms)`);
   head.push('Prof. diseño (m)', 'Prof. real (m)', 'Diferencia (m)', 'Taco (m)', 'Largo carga (m)', 'Explosivo', 'Carga (kg)', 'Agua', 'Altura agua (m)', 'Estado', 'Observaciones', 'X plano', 'Y plano', 'Origen');
   const rows = [head];
   for (const h of sortedHoles()) {
-    const t = typeOf(h); const ds = detsOf(h);
-    const r = [h.page, h.group || '', h.id, t ? t.name : 'Sin tipo', t ? t.n : 0];
+    const t = typeOf(h); const ds = detsOf(h); const q = seq.get(h.uid);
+    const r = [h.page, h.group || '', h.id, q ? q.s.name : '', q ? q.n : '', t ? t.name : 'Sin tipo', t ? t.n : 0];
     for (let i = 0; i < maxN; i++) r.push(ds[i]?.tag || '', ds[i]?.delay ?? '');
     r.push(dec(h.dDesign, 1), dec(h.dReal, 2), h.dReal !== null && h.dDesign !== null ? dec(h.dReal - h.dDesign, 2) : '',
       dec(h.stem, 2), dec(chargeLen(h), 2), h.expl || '', dec(h.charge, 1), h.water ? 'Sí' : 'No', dec(h.waterLvl, 2), stateName(h.state),
@@ -1237,12 +1505,13 @@ function buildCsv() {
   }
   return csvJoin(rows);
 }
-/** Un detonador por fila: útil para cargar la programación de retardos. */
+/** Un detonador por fila, en orden de string y secuencia: sirve para programar los retardos. */
 function buildCsvDets() {
-  const rows = [['Malla', 'ID pozo', 'Tipo', 'N° detonador', 'Etiqueta', 'Retardo (ms)', 'Prof. real (m)', 'Estado']];
-  for (const h of sortedHoles()) {
-    const t = typeOf(h); if (!t) continue;
-    detsOf(h).forEach((d, i) => rows.push([h.group || '', h.id, t.name, i + 1, d.tag, d.delay ?? '', dec(h.dReal ?? h.dDesign, 2), stateName(h.state)]));
+  const seq = seqIndex();
+  const rows = [['String', 'N° secuencia', 'Malla', 'ID pozo', 'Tipo', 'N° detonador', 'Etiqueta', 'Retardo (ms)', 'Prof. real (m)', 'Estado']];
+  for (const h of sortedHoles('seq')) {
+    const t = typeOf(h); if (!t) continue; const q = seq.get(h.uid);
+    detsOf(h).forEach((d, i) => rows.push([q ? q.s.name : '', q ? q.n : '', h.group || '', h.id, t.name, i + 1, d.tag, d.delay ?? '', dec(h.dReal ?? h.dDesign, 2), stateName(h.state)]));
   }
   return csvJoin(rows);
 }
@@ -1261,23 +1530,50 @@ async function buildPdf({ plan = true, report = true } = {}) {
   const doc = plan ? await PDFDocument.load(S.bytes.slice(0)) : await PDFDocument.create();
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
-  const s = stats();
+  const s = stats(); const seq = seqIndex(); const LB = S.settings.label;
   if (plan) {
     const pages = doc.getPages();
     for (let p = 1; p <= pages.length; p++) {
       const page = pages[p - 1]; const hs = S.holes.filter(h => h.page === p);
-      if (!hs.some(typeOf) && p !== S.pageNum) continue;
+      if (!hs.some(h => typeOf(h) || seq.has(h.uid)) && p !== S.pageNum) continue;
       const r = S.r; // misma escala que en pantalla (unidades de página)
+      // Strings: línea, flechas de sentido y nombre en el primer pozo
+      if (S.settings.showStrings) {
+        const byUid = new Map(hs.map(h => [h.uid, h]));
+        for (const st of S.strings) {
+          const pts = st.holes.map(u => byUid.get(u)).filter(Boolean); if (!pts.length) continue;
+          const c = hexRgb(st.color);
+          for (let i = 1; i < pts.length; i++) {
+            const a = pts[i - 1], b = pts[i];
+            page.drawLine({ start: { x: a.x, y: a.y }, end: { x: b.x, y: b.y }, thickness: r * .3, color: c, opacity: .85 });
+            const len = Math.hypot(b.x - a.x, b.y - a.y); if (len < r * 3) continue;
+            const ux = (b.x - a.x) / len, uy = (b.y - a.y) / len, mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2, k = r * .62;
+            const P = (fx, fy) => `${(mx + ux * fx - uy * fy - mx).toFixed(3)} ${(-(my + uy * fx + ux * fy - my)).toFixed(3)}`;
+            page.drawSvgPath(`M${P(k, 0)} L${P(-k, k * .75)} L${P(-k, -k * .75)} Z`, { x: mx, y: my, color: c });
+          }
+          const f = pts[0];
+          page.drawCircle({ x: f.x, y: f.y, size: r * 2.1, borderColor: c, borderWidth: r * .3 });
+          const nm = W(st.name), fs = r * 1.5;
+          page.drawText(nm, { x: f.x - r * 2.3 - bold.widthOfTextAtSize(nm, fs), y: f.y + r * 2.1 - fs * .3, size: fs, font: bold, color: c });
+        }
+      }
       for (const h of hs) {
-        const t = typeOf(h);
+        const t = typeOf(h); const q = seq.get(h.uid);
         if (t) {
           const c = hexRgb(t.color);
           symbolPaths(t.symbol, r).forEach((d, i) => page.drawSvgPath(d, {
             x: h.x, y: h.y, color: i === 0 ? c : undefined, opacity: 0.28, borderColor: c, borderWidth: r * 0.26, borderOpacity: 1,
           }));
-          const ds = detsOf(h).filter(d => d.tag);
-          const fs = r * 0.95, y0 = ((ds.length - 1) * fs) / 2 - fs * 0.35;
-          ds.forEach((d, i) => page.drawText(W(detLabel(d, S.settings.showDelay)), { x: h.x + r * 1.45, y: h.y + y0 - i * fs, size: fs, font, color: c }));
+        }
+        const lines = labelLines(h);
+        if (lines.length) {
+          const c = t ? hexRgb(t.color) : rgb(.23, .28, .27);
+          const fs = r * 0.95, y0 = ((lines.length - 1) * fs) / 2 - fs * 0.35;
+          lines.forEach((x, i) => page.drawText(W(x), { x: h.x + r * 1.45, y: h.y + y0 - i * fs, size: fs, font, color: c }));
+        }
+        if (q && LB.seq) {
+          const tx = String(q.n), fs = r * 1.2;
+          page.drawText(tx, { x: h.x - r * 2.15 - bold.widthOfTextAtSize(tx, fs), y: h.y - r * .42, size: fs, font: bold, color: hexRgb(q.s.color) });
         }
         if (S.settings.showMarks) {
           const m = r * 0.42, x = h.x - r * 1.55;
@@ -1288,7 +1584,8 @@ async function buildPdf({ plan = true, report = true } = {}) {
       }
       // Cuadro de simbología en la esquina inferior izquierda
       const { x: bx0, y: by0 } = page.getMediaBox();
-      const lh = 9, rows = S.types.length + 4, w = 160, hgt = rows * lh + 10, x0 = bx0 + 12, y0 = by0 + 12;
+      const strs = S.settings.showStrings ? S.strings.filter(st => st.holes.length) : [];
+      const lh = 9, rows = S.types.length + 4 + (strs.length ? 1 + Math.ceil(strs.length / 2) : 0), w = 170, hgt = rows * lh + 10, x0 = bx0 + 12, y0 = by0 + 12;
       page.drawRectangle({ x: x0, y: y0, width: w, height: hgt, color: rgb(1, 1, 1), opacity: 0.92, borderColor: rgb(0.2, 0.2, 0.2), borderWidth: 0.6 });
       let y = y0 + hgt - 11;
       page.drawText('SIMBOLOGÍA - DETONADORES POR POZO', { x: x0 + 6, y, size: 6.2, font: bold, color: rgb(0.1, 0.1, 0.1) }); y -= lh;
@@ -1305,6 +1602,15 @@ async function buildPdf({ plan = true, report = true } = {}) {
         page.drawCircle({ x: x0 + 86, y: y + 2.2, size: 2, color: hexRgb(MARK_REPASADO) }); page.drawText('Repasado', { x: x0 + 91, y, size: 6, font });
       }
       y -= lh;
+      if (strs.length) {
+        page.drawText('STRINGS (N° de secuencia)', { x: x0 + 6, y, size: 6.2, font: bold, color: rgb(0.1, 0.1, 0.1) }); y -= lh;
+        strs.forEach((st, i) => {
+          const cx = x0 + 6 + (i % 2) * (w / 2 - 2), c = hexRgb(st.color);
+          page.drawLine({ start: { x: cx, y: y + 2.2 }, end: { x: cx + 10, y: y + 2.2 }, thickness: 1.6, color: c });
+          page.drawText(fitText(font, `${st.name} ${stringRange(st)}`, 5.8, w / 2 - 18), { x: cx + 13, y, size: 5.8, font, color: rgb(0.1, 0.1, 0.1) });
+          if (i % 2 === 1 || i === strs.length - 1) y -= lh;
+        });
+      }
       page.drawText(W(`Detonadores: ${s.dets}   Explosivo: ${dec(s.kg, 1)} kg`), { x: x0 + 6, y, size: 6, font, color: rgb(0.25, 0.25, 0.25) }); y -= lh;
       page.drawText(W(`Generado ${nowCl()}`), { x: x0 + 6, y, size: 5.5, font, color: rgb(0.4, 0.4, 0.4) });
     }
@@ -1315,22 +1621,22 @@ async function buildPdf({ plan = true, report = true } = {}) {
 
 function drawReport(doc, font, bold) {
   const { rgb } = PDFLib;
-  const PW = 792, PH = 612, M = 28, FS = 6.8, LH = 8.6;
-  const cols = [
-    ['Malla', 'group', 58], ['ID', 'id', 30], ['Tipo', 'type', 36], ['Detonadores (etiqueta  retardo)', 'dets', 128],
-    ['P.dis', 'dd', 28, 1], ['P.real', 'dr', 30, 1], ['Dif.', 'diff', 28, 1], ['Taco', 'stem', 28, 1], ['L.carga', 'clen', 32, 1],
-    ['Explosivo', 'expl', 62], ['kg', 'kg', 30, 1], ['Agua', 'water', 40], ['Estado', 'state', 44],
-  ];
-  const used = cols.reduce((a, c) => a + c[2], 0); cols.push(['Observaciones', 'obs', PW - 2 * M - used]);
+  const PW = 792, PH = 612, M = 28, FS = 6.8, LH = 8.6, avail = PW - 2 * M;
+  let cols = reportCols().map(c => ({ ...c }));
+  if (!cols.length) cols = [{ k: 'id', n: 'ID', w: 40 }];
+  const fixed = cols.reduce((a, c) => a + c.w, 0); const obs = cols.find(c => c.k === 'obs');
+  if (obs) obs.w = Math.max(70, avail - fixed);
+  const tot = cols.reduce((a, c) => a + c.w, 0);
+  if (tot > avail) cols.forEach(c => { c.w *= avail / tot; });
   const rows = reportRows(); const pages = [];
   let page, y;
   const ink = rgb(0.1, 0.12, 0.12), grey = rgb(0.45, 0.48, 0.48), rule = rgb(0.75, 0.78, 0.78);
   const header = () => {
     let x = M;
-    page.drawRectangle({ x: M, y: y - 3, width: PW - 2 * M, height: LH + 4, color: rgb(0.9, 0.93, 0.92) });
-    for (const [n, , w, right] of cols) {
-      const t = fitText(bold, n, FS, w - 4); const tw = bold.widthOfTextAtSize(t, FS);
-      page.drawText(t, { x: right ? x + w - 2 - tw : x + 2, y, size: FS, font: bold, color: ink }); x += w;
+    page.drawRectangle({ x: M, y: y - 3, width: avail, height: LH + 4, color: rgb(0.9, 0.93, 0.92) });
+    for (const c of cols) {
+      const t = fitText(bold, c.n, FS, c.w - 4); const tw = bold.widthOfTextAtSize(t, FS);
+      page.drawText(t, { x: c.right ? x + c.w - 2 - tw : x + 2, y, size: FS, font: bold, color: ink }); x += c.w;
     }
     y -= LH + 6;
   };
@@ -1340,23 +1646,24 @@ function drawReport(doc, font, bold) {
     page.drawText(W(S.fileName), { x: PW - M - font.widthOfTextAtSize(W(S.fileName), 7.5), y: y - 2, size: 7.5, font, color: grey });
     y -= 22;
     if (first) {
-      for (const l of summaryLines()) { page.drawText(fitText(font, l, 7.8, PW - 2 * M), { x: M, y, size: 7.8, font, color: ink }); y -= 10.5; }
+      for (const l of summaryLines()) { page.drawText(fitText(font, l, 7.8, avail), { x: M, y, size: 7.8, font, color: ink }); y -= 10.5; }
       y -= 6;
     }
     header();
   };
   newPage(true);
+  const hasDets = cols.some(c => c.k === 'dets');
   for (const r of rows) {
-    const n = Math.max(1, r.dets.length); const h = n * LH + 3;
+    const n = hasDets ? Math.max(1, r.dets.length) : 1; const h = n * LH + 3;
     if (y - h < M + 14) newPage(false);
     let x = M;
-    for (const [, k, w, right] of cols) {
-      const lines = k === 'dets' ? (r.dets.length ? r.dets : ['']) : [r[k]];
+    for (const c of cols) {
+      const lines = c.k === 'dets' ? (r.dets.length ? r.dets : ['']) : [r[c.k]];
       lines.forEach((v, i) => {
-        const t = fitText(font, v, FS, w - 4); const tw = font.widthOfTextAtSize(t, FS);
-        page.drawText(t, { x: right ? x + w - 2 - tw : x + 2, y: y - i * LH, size: FS, font, color: ink });
+        const t = fitText(font, v, FS, c.w - 4); const tw = font.widthOfTextAtSize(t, FS);
+        page.drawText(t, { x: c.right ? x + c.w - 2 - tw : x + 2, y: y - i * LH, size: FS, font, color: ink });
       });
-      x += w;
+      x += c.w;
     }
     y -= h;
     page.drawLine({ start: { x: M, y: y + LH - 2 }, end: { x: PW - M, y: y + LH - 2 }, thickness: 0.4, color: rule });
@@ -1371,7 +1678,7 @@ $('fileJson').onchange = async (e) => {
   if (!data || !Array.isArray(data.holes)) { toast('El archivo no es un respaldo válido de esta aplicación.', 4000); return; }
   if (!S.pdf) { toast('Abre primero el plano PDF y luego importa el respaldo.', 4000); return; }
   S.holes = data.holes.map(normHole); if (Array.isArray(data.types) && data.types.length) S.types = data.types;
-  S.settings = { ...S.settings, ...(data.settings || {}) };
+  S.settings = normSettings({ ...S.settings, ...(data.settings || {}) }); loadStrings(data);
   uidSeq = Math.max(0, ...S.holes.map(h => h.uid)) + 1; S.sel.clear();
   computeRadius(); save(); renderAll(); renderTypeFilter();
   toast(data.fileName && data.fileName !== S.fileName ? `Respaldo importado (era de «${data.fileName}»). Revisa que coincida con este plano.` : `Respaldo importado: ${S.holes.length} pozos.`, 4500);
@@ -1425,6 +1732,14 @@ async function loadDemo() {
     if (row === 4 && col === 6) h.state = 'tapado';
     if (row === 2 && col === 9) h.state = 'repasado';
   }
+  // Dos strings de ejemplo en zigzag, con numeración continua
+  const byIdMap = new Map(S.holes.map(h => [h.id, h]));
+  const mk = (rows) => {
+    const st = newString();
+    rows.forEach((row, k) => { const cols = Array.from({ length: 11 }, (_, i) => i + 1); if (k % 2) cols.reverse(); cols.forEach(c => { const h = byIdMap.get(String(row * 100 + c)); if (h) st.holes.push(h.uid); }); });
+    return st;
+  };
+  const s1 = mk([1, 2]), s2 = mk([3, 4]); s2.start = s1.start + s1.holes.length; S.activeString = s1.id;
   S.sel.clear(); renderAll();
 }
 
