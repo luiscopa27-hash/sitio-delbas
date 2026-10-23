@@ -1,0 +1,12 @@
+{
+  "name": "Malla de Tronadura",
+  "short_name": "Malla",
+  "description": "Registro de detonadores, retardos y carguío sobre planos PDF de mallas de tronadura.",
+  "lang": "es-CL",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#e9eeec",
+  "theme_color": "#0d6b61",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

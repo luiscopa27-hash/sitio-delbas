@@ -5,6 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Malla de Tronadura</title>
 <meta name="claude:viewport-fit-sides" content="cover">
+<!-- pwa:start -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#0d6b61">
+<!-- pwa:end -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -61,6 +66,7 @@ button { cursor: pointer; }
 .brand { display: flex; align-items: baseline; gap: 10px; min-width: 0; margin-right: auto; }
 .brand h1 { font: 700 1.55rem/1 var(--font-display); letter-spacing: .02em; margin: 0; text-transform: uppercase; }
 .brand .file { font: 500 .8rem var(--font-data); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 40ch; }
+.net { font: 600 .74rem var(--font-body); color: var(--warn); border: 1px solid currentColor; border-radius: 999px; padding: 1px 8px; white-space: nowrap; }
 .actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .btn {
   border: 1px solid var(--line); background: var(--surface); border-radius: var(--radius);
@@ -79,6 +85,8 @@ button { cursor: pointer; }
 }
 .menu-list button { text-align: left; border: 0; background: none; padding: 8px 10px; border-radius: 4px; }
 .menu-list button:hover { background: var(--surface-2); }
+.menu-sec { font: 600 .7rem var(--font-body); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); padding: 8px 10px 2px; }
+.menu-list { max-height: min(75vh, 640px); overflow: auto; }
 .menu-list small { display: block; color: var(--muted); font-size: .78rem; }
 
 /* ---------- Área principal ---------- */
@@ -110,6 +118,8 @@ button { cursor: pointer; }
   display: flex; flex-direction: column; gap: 3px; box-shadow: 0 1px 4px rgba(0,0,0,.12);
 }
 .legend-float .row { display: flex; align-items: center; gap: 7px; }
+.legend-float .marks { gap: 5px; font-size: .76rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: 4px; margin-top: 2px; }
+.legend-float .mk { display: inline-block; width: 9px; height: 9px; flex: none; }
 .legend-float b { font-family: var(--font-data); font-weight: 500; margin-left: auto; padding-left: 10px; }
 
 .banner {
@@ -141,6 +151,8 @@ button { cursor: pointer; }
 .field input, .field select, .field textarea {
   border: 1px solid var(--line); background: var(--surface-2); border-radius: var(--radius); padding: 7px 9px; width: 100%; min-width: 0;
 }
+.field label.check { display: flex; font-size: .92rem; font-weight: 500; color: var(--ink); min-height: 36px; margin: 0; }
+.field input[type=checkbox] { width: auto; padding: 0; }
 .field textarea { resize: vertical; min-height: 64px; }
 .mono { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -154,6 +166,13 @@ button { cursor: pointer; }
 .typePick svg { width: 20px; height: 20px; }
 .typePick kbd { font: 500 .7rem var(--font-data); color: var(--muted); }
 .hint { color: var(--muted); font-size: .88rem; }
+.dets { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.detsHead, .detRow { display: grid; grid-template-columns: 22px minmax(0, 1fr) 92px; gap: 8px; align-items: center; }
+.detsHead { font-size: .76rem; font-weight: 600; color: var(--muted); }
+.detRow input[data-tag] { text-transform: uppercase; }
+.detRow input { border: 1px solid var(--line); background: var(--surface-2); border-radius: var(--radius); padding: 7px 9px; width: 100%; min-width: 0; }
+.detRow .tagWarn { grid-column: 2 / 4; }
+.field input:disabled { opacity: .5; }
 .diff { font: 500 .85rem var(--font-data); }
 .diff.neg { color: var(--danger); } .diff.pos { color: var(--warn); } .diff.zero { color: var(--ok); }
 .tagWarn { color: var(--danger); font-size: .8rem; }
@@ -213,6 +232,7 @@ tbody tr.sel { background: color-mix(in srgb, var(--accent) 16%, var(--surface))
   <div class="brand">
     <h1>Malla de Tronadura</h1>
     <span class="file" id="fileName">Sin plano</span>
+    <span class="net" id="netState" hidden>Sin conexión · datos guardados en este equipo</span>
   </div>
   <div class="actions">
     <button class="btn primary" id="btnOpen" type="button">
@@ -222,9 +242,17 @@ tbody tr.sel { background: color-mix(in srgb, var(--accent) 16%, var(--surface))
     <div class="menu">
       <button class="btn" id="btnExport" type="button" aria-haspopup="true" aria-expanded="false">Exportar ▾</button>
       <div class="menu-list" id="exportMenu" hidden>
-        <button type="button" data-exp="pdf">PDF anotado<small>Plano original con simbología y etiquetas</small></button>
-        <button type="button" data-exp="csv">Planilla CSV (Excel)<small>Un pozo por fila, separador ;</small></button>
-        <button type="button" data-exp="json">Respaldo JSON<small>Para volver a cargar el trabajo</small></button>
+        <span class="menu-sec">Imprimir / PDF</span>
+        <button type="button" data-exp="pdf-full">Informe PDF completo<small>Plano anotado + tabla de pozos y resumen</small></button>
+        <button type="button" data-exp="pdf-plan">Plano anotado PDF<small>Plano original con simbología, etiquetas y retardos</small></button>
+        <button type="button" data-exp="pdf-report">Informe PDF (solo tabla)<small>Resumen y detalle por pozo</small></button>
+        <button type="button" data-exp="print">Ver e imprimir informe<small>Abre el PDF completo para imprimir</small></button>
+        <span class="menu-sec">Texto y planillas</span>
+        <button type="button" data-exp="txt">Informe TXT<small>Texto plano en columnas</small></button>
+        <button type="button" data-exp="csv">Planilla CSV por pozo<small>Excel: separador ; y coma decimal</small></button>
+        <button type="button" data-exp="csv-det">CSV de detonadores<small>Una fila por detonador: etiqueta y retardo</small></button>
+        <span class="menu-sec">Respaldo</span>
+        <button type="button" data-exp="json">Respaldo JSON<small>Para volver a cargar el trabajo en otro equipo</small></button>
         <button type="button" data-exp="import">Importar respaldo JSON…<small>Restaura datos guardados</small></button>
       </div>
     </div>
@@ -278,11 +306,11 @@ tbody tr.sel { background: color-mix(in srgb, var(--accent) 16%, var(--surface))
     <div class="tabpane" id="pane-pozo"></div>
     <div class="tabpane" id="pane-lista" hidden>
       <div class="filters">
-        <input id="fText" type="search" placeholder="Buscar ID, etiqueta, malla u observación">
+        <input id="fText" type="search" placeholder="Buscar ID, etiqueta, malla, explosivo u observación">
         <select id="fType" aria-label="Filtrar por tipo"></select>
       </div>
       <div class="tblWrap"><table>
-        <thead><tr><th>ID</th><th>Malla</th><th>Tipo</th><th>Etiquetas</th><th class="num">P. dis.</th><th class="num">P. real</th></tr></thead>
+        <thead><tr><th>ID</th><th>Malla</th><th>Tipo</th><th>Detonadores (retardo)</th><th class="num">P. dis.</th><th class="num">P. real</th><th class="num">Taco</th><th class="num">kg</th></tr></thead>
         <tbody id="tblBody"></tbody>
       </table></div>
     </div>
@@ -291,10 +319,15 @@ tbody tr.sel { background: color-mix(in srgb, var(--accent) 16%, var(--surface))
 </main>
 
 <div class="toast" id="toast" hidden></div>
+<datalist id="explOpts"></datalist>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<!-- Librerías: copia local (funciona sin internet) y, si falta, la misma versión desde cdnjs -->
+<script src="vendor/pdf.min.js"></script>
+<script>window.pdfjsLib || document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"><\/script>');</script>
+<script src="vendor/pdf.worker.min.js"></script>
+<script>window.pdfjsWorker || document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js"><\/script>');</script>
+<script src="vendor/pdf-lib.min.js"></script>
+<script>window.PDFLib || document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"><\/script>');</script>
 <script>
 (() => {
 'use strict';
@@ -316,15 +349,22 @@ const DEFAULT_TYPES = [
   { key: 'T', name: 'Triple', color: '#cf2546', symbol: 'triangle', n: 3 },
 ];
 const STORE_PREFIX = 'malla:v1:';
+const STATES = [
+  { key: '', name: 'Normal' },
+  { key: 'tapado', name: 'Tapado' },
+  { key: 'repasado', name: 'Repasado' },
+];
+const MARK_WATER = '#1597d4', MARK_TAPADO = '#222222', MARK_REPASADO = '#1f9a4c';
+const EXPLOSIVE_HINTS = ['ANFO', 'ANFO pesado', 'Emulsión', 'Emulsión gasificada', 'Booster'];
 
 // ===================== Estado =====================
 const S = {
   docKey: null, fileName: '', bytes: null, pdf: null, demo: false,
   pageNum: 1, pageCount: 1,
   vp: null,            // viewport escala 1 de la página actual
-  holes: [],           // {uid,page,id,x,y,dDesign,dReal,type,tags[],group,obs,manual}
+  holes: [],           // ver normHole()
   types: DEFAULT_TYPES.map(t => ({ ...t })),
-  settings: { showTags: true, showUnassigned: true },
+  settings: { showTags: true, showDelay: true, showUnassigned: true, showMarks: true },
   sel: new Set(),
   mode: 'select',
   z: 1, tx: 0, ty: 0,
@@ -339,6 +379,27 @@ const fmt = (v, d = 1) => v === null || v === undefined ? '—' : v.toFixed(d).r
 const typeOf = (h) => S.types.find(t => t.key === h.type) || null;
 const idNum = (id) => { const n = parseInt(id, 10); return Number.isFinite(n) ? n : 1e9; };
 const byId = (a, b) => (a.group || '').localeCompare(b.group || '') || idNum(a.id) - idNum(b.id) || String(a.id).localeCompare(String(b.id)) || a.uid - b.uid;
+const stateName = (k) => (STATES.find(s => s.key === k) || STATES[0]).name;
+
+/**
+ * Pozo: {uid, page, id, x, y, th, manual, group, type,
+ *   dets: [{tag, delay}]   detonadores (etiqueta alfanumérica + retardo en ms)
+ *   dDesign, dReal, stem (taco m), expl (explosivo), charge (kg),
+ *   water (bool), waterLvl (m), state ('' | 'tapado' | 'repasado'), obs}
+ * Convierte también respaldos de la versión anterior (tags[]).
+ */
+function normHole(h) {
+  if (!Array.isArray(h.dets)) h.dets = (h.tags || []).map(t => ({ tag: t || '', delay: null }));
+  delete h.tags;
+  for (const k of ['dDesign', 'dReal', 'stem', 'charge', 'waterLvl']) if (h[k] === undefined) h[k] = null;
+  for (const k of ['group', 'expl', 'obs', 'state', 'type']) if (h[k] === undefined) h[k] = '';
+  h.water = !!h.water;
+  return h;
+}
+/** Detonadores vigentes según el tipo del pozo (los sobrantes se conservan pero no cuentan). */
+function detsOf(h) { const t = typeOf(h); if (!t) return []; return Array.from({ length: t.n }, (_, i) => h.dets[i] || { tag: '', delay: null }); }
+function chargeLen(h) { const d = h.dReal ?? h.dDesign; return d !== null && h.stem !== null ? d - h.stem : null; }
+function detLabel(d, withDelay = true) { return d.tag + (withDelay && d.delay !== null ? ` (${d.delay} ms)` : ''); }
 
 function toast(msg, ms = 2600) {
   const t = $('toast'); t.textContent = msg; t.hidden = false;
@@ -439,12 +500,12 @@ function detectHoles(items, page) {
   for (const p of pairs) {
     if (usedI.has(p.id) || usedD.has(p.dp)) continue;
     usedI.add(p.id); usedD.add(p.dp);
-    out.push({
+    out.push(normHole({
       uid: uidSeq++, page, id: p.id.s,
       x: p.id.x + p.id.w / 2,
       y: (p.id.y + p.dp.y + p.dp.h * 0.72) / 2,
-      dDesign: num(p.dp.s), dReal: null, type: '', tags: [], group: '', obs: '', manual: false, th: +p.id.h.toFixed(2),
-    });
+      dDesign: num(p.dp.s), manual: false, th: +p.id.h.toFixed(2),
+    }));
   }
   return out;
 }
@@ -460,7 +521,7 @@ async function openPdf(bytes, name, { demo = false, restore = null } = {}) {
 
     const stored = restore || (S.docKey ? safeParse(lsGet(STORE_PREFIX + S.docKey)) : null);
     if (stored && Array.isArray(stored.holes)) {
-      S.holes = stored.holes; S.types = stored.types?.length ? stored.types : S.types;
+      S.holes = stored.holes.map(normHole); S.types = stored.types?.length ? stored.types : S.types;
       S.settings = { ...S.settings, ...(stored.settings || {}) };
       uidSeq = Math.max(0, ...S.holes.map(h => h.uid)) + 1;
     } else {
@@ -541,25 +602,34 @@ function renderOverlay() {
     if (t) {
       symbolPaths(t.symbol, r).forEach((d, i) => out.push(`<path d="${d}" fill="${i === 0 ? t.color : 'none'}" fill-opacity=".28" stroke="${t.color}" stroke-width="${(r * .26).toFixed(2)}"/>`));
       if (S.settings.showTags) {
-        const tags = (h.tags || []).slice(0, t.n).filter(Boolean);
-        if (tags.length) {
-          const dup = tags.some(x => tagCount.get(x) > 1);
-          const fs = r * 0.95, y0 = -((tags.length - 1) * fs) / 2 + fs * 0.35;
-          out.push(`<text font-size="${fs.toFixed(2)}" fill="${dup ? '#b4233c' : t.color}" stroke-width="${(r * .28).toFixed(2)}">${tags.map((x, i) =>
-            `<tspan x="${(r * 1.45).toFixed(2)}" y="${(y0 + i * fs).toFixed(2)}">${esc(x)}</tspan>`).join('')}</text>`);
+        const ds = detsOf(h).filter(d => d.tag);
+        if (ds.length) {
+          const dup = ds.some(d => tagCount.get(d.tag) > 1);
+          const fs = r * 0.95, y0 = -((ds.length - 1) * fs) / 2 + fs * 0.35;
+          out.push(`<text font-size="${fs.toFixed(2)}" fill="${dup ? '#b4233c' : t.color}" stroke-width="${(r * .28).toFixed(2)}">${ds.map((d, i) =>
+            `<tspan x="${(r * 1.45).toFixed(2)}" y="${(y0 + i * fs).toFixed(2)}">${esc(detLabel(d, S.settings.showDelay))}</tspan>`).join('')}</text>`);
         }
       }
     } else {
       out.push(`<circle r="${(r * .8).toFixed(2)}" fill="none" stroke="#6b7774" stroke-width="${(r * .14).toFixed(2)}" stroke-dasharray="${(r * .35).toFixed(2)} ${(r * .3).toFixed(2)}"/>`);
     }
+    if (S.settings.showMarks) out.push(marksSvg(h, r));
     out.push('</g>');
   }
   $('overlay').innerHTML = out.join('');
 }
 
+/** Marcas de condición a la izquierda del pozo: agua (gota azul), tapado (cuadro negro), repasado (círculo verde). */
+function marksSvg(h, r) {
+  const m = r * 0.42, x = -r * 1.55; let o = '';
+  if (h.water) o += `<path d="M${x} ${-r * 1.15} q${m} ${m * 1.3} 0 ${m * 2.1} q${-m} ${-m * .8} 0 ${-m * 2.1}Z" fill="${MARK_WATER}"/>`;
+  if (h.state === 'tapado') o += `<rect x="${x - m}" y="${r * .25}" width="${m * 2}" height="${m * 2}" fill="${MARK_TAPADO}"/>`;
+  if (h.state === 'repasado') o += `<circle cx="${x}" cy="${r * .25 + m}" r="${m}" fill="${MARK_REPASADO}"/>`;
+  return o;
+}
 function tagCounts() {
   const m = new Map();
-  for (const h of S.holes) { const t = typeOf(h); if (!t) continue; for (const x of (h.tags || []).slice(0, t.n)) if (x) m.set(x, (m.get(x) || 0) + 1); }
+  for (const h of S.holes) for (const d of detsOf(h)) if (d.tag) m.set(d.tag, (m.get(d.tag) || 0) + 1);
   return m;
 }
 function dupIds() {
@@ -572,7 +642,9 @@ function renderLegend() {
   const counts = new Map(); let none = 0;
   for (const h of S.holes) { if (h.type && typeOf(h)) counts.set(h.type, (counts.get(h.type) || 0) + 1); else none++; }
   $('legendFloat').innerHTML = S.types.map(t => `<div class="row">${symbolSvg(t, 16)}<span>${esc(t.name)}</span><b>${counts.get(t.key) || 0}</b></div>`).join('')
-    + `<div class="row">${symbolSvg(null, 16)}<span>Sin asignar</span><b>${none}</b></div>`;
+    + `<div class="row">${symbolSvg(null, 16)}<span>Sin asignar</span><b>${none}</b></div>`
+    + (S.settings.showMarks ? `<div class="row marks"><span class="mk" style="background:${MARK_WATER};border-radius:50% 50% 50% 0;transform:rotate(-45deg)"></span>Agua
+       <span class="mk" style="background:${MARK_TAPADO}"></span>Tapado <span class="mk" style="background:${MARK_REPASADO};border-radius:50%"></span>Repasado</div>` : '');
 }
 
 function renderAll() { renderOverlay(); renderLegend(); renderPanel(); renderTable(); }
@@ -682,7 +754,7 @@ document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => setMode(
 function addHoleAt(wx, wy) {
   const p = toPdf(wx, wy);
   const ids = pageHoles().map(h => idNum(h.id)).filter(n => n < 1e9);
-  const h = { uid: uidSeq++, page: S.pageNum, id: String(ids.length ? Math.max(...ids) + 1 : 1), x: p.x, y: p.y, dDesign: null, dReal: null, type: '', tags: [], group: '', obs: '', manual: true };
+  const h = normHole({ uid: uidSeq++, page: S.pageNum, id: String(ids.length ? Math.max(...ids) + 1 : 1), x: p.x, y: p.y, manual: true });
   S.holes.push(h); S.sel.clear(); S.sel.add(h.uid);
   if (pageHoles().length < 3) computeRadius();
   save(); showTab('pozo'); renderAll();
@@ -697,33 +769,58 @@ function typeButtons(cur, allowNone = true) {
   return `<div class="typePick">${allowNone ? btn('', 'Sin tipo', null, 0) : ''}${S.types.map((t, i) => btn(t.key, t.name, t, i + 1)).join('')}</div>`;
 }
 
+function explList() {
+  const used = S.holes.map(h => h.expl).filter(Boolean);
+  return [...new Set([...used, ...EXPLOSIVE_HINTS])];
+}
+function stateButtons(cur) {
+  return `<div class="typePick">${STATES.map(st => `<button type="button" data-setstate="${st.key}" aria-pressed="${cur === st.key}">${esc(st.name)}</button>`).join('')}</div>`;
+}
+
 function renderPanel() {
   const pane = $('pane-pozo'); const sel = selected();
+  $('explOpts').innerHTML = explList().map(v => `<option value="${esc(v)}"></option>`).join('');
   if (!S.vp) { pane.innerHTML = '<p class="hint">Abre un plano PDF para comenzar.</p>'; return; }
   if (!sel.length) {
     pane.innerHTML = `<p class="eyebrow">Ningún pozo seleccionado</p>
-      <p class="hint">Toca un pozo en el plano para cargar su etiqueta y profundidad. Con <b>Área</b> (o Mayús + arrastrar) seleccionas varios y les asignas el tipo de una vez.</p>
+      <p class="hint">Toca un pozo en el plano para cargar sus detonadores, profundidad y carguío. Con <b>Área</b> (o Mayús + arrastrar) seleccionas varios y les asignas tipo, malla, taco, explosivo o carga de una vez.</p>
       <p class="hint">Atajos: <span class="mono">0–${S.types.length}</span> cambia el tipo, <span class="mono">→ / ←</span> pasa al pozo siguiente o anterior, <span class="mono">Esc</span> limpia la selección.</p>
       ${summaryHtml()}`;
     return;
   }
   if (sel.length > 1) {
-    const groups = [...new Set(sel.map(h => h.group || ''))];
+    const same = (k) => sel.every(h => (h[k] ?? '') === (sel[0][k] ?? '')) ? (sel[0][k] ?? '') : null;
     const confirming = S.confirm === 'delmany';
+    const g = same('group'), st = same('stem'), ex = same('expl'), ch = same('charge');
     pane.innerHTML = `<div class="holeHead"><div><p class="eyebrow">Selección múltiple</p><div class="num">${sel.length} pozos</div></div></div>
-      <div class="field"><span class="lbl">Asignar tipo de etiquetado</span>${typeButtons(sel.every(h => h.type === sel[0].type) ? sel[0].type : '__mixed')}</div>
-      <div class="field"><label for="f-mgroup">Malla / disparo</label>
-        <div class="rowBtns"><input id="f-mgroup" style="flex:1" value="${groups.length === 1 ? esc(groups[0]) : ''}" placeholder="${groups.length > 1 ? 'Varios valores' : 'Ej.: F082400_03'}"><button class="btn small" type="button" id="applyGroup">Aplicar</button></div></div>
+      <div class="field"><span class="lbl">Detonadores por pozo</span>${typeButtons(same('type') ?? '__mixed')}</div>
+      <div class="field"><span class="lbl">Estado</span>${stateButtons(same('state') ?? '__mixed')}</div>
+      <p class="eyebrow" style="margin-top:14px">Datos comunes</p>
+      <p class="hint">Solo se aplican los campos que completes.</p>
+      <div class="grid2">
+        <div class="field"><label for="m-group">Malla / disparo</label><input id="m-group" value="${g !== null ? esc(g) : ''}" placeholder="${g === null ? 'Varios valores' : 'Ej.: F082400_03'}"></div>
+        <div class="field"><label for="m-stem">Taco (m)</label><input id="m-stem" class="mono" inputmode="decimal" value="${st !== null && st !== '' ? st : ''}" placeholder="${st === null ? 'Varios' : ''}"></div>
+        <div class="field"><label for="m-expl">Explosivo</label><input id="m-expl" list="explOpts" value="${ex !== null ? esc(ex) : ''}" placeholder="${ex === null ? 'Varios' : ''}"></div>
+        <div class="field"><label for="m-charge">Carga (kg)</label><input id="m-charge" class="mono" inputmode="decimal" value="${ch !== null && ch !== '' ? ch : ''}" placeholder="${ch === null ? 'Varios' : ''}"></div>
+      </div>
+      <div class="rowBtns" style="margin-top:10px"><button class="btn small primary" type="button" id="applyMany">Aplicar a ${sel.length} pozos</button></div>
+      <div class="sectionGap"></div>
       <div class="rowBtns">
         <button class="btn small" type="button" id="clearSel">Limpiar selección</button>
         ${confirming ? `<span class="hint">¿Eliminar ${sel.length} pozos?</span><button class="btn small danger solid" type="button" id="delYes">Eliminar</button><button class="btn small" type="button" id="delNo">Cancelar</button>`
           : `<button class="btn small danger" type="button" id="delMany">Eliminar pozos</button>`}
       </div>
       <div class="sectionGap"></div>
-      <div class="tblWrap"><table><thead><tr><th>ID</th><th>Tipo</th><th class="num">P. dis.</th></tr></thead><tbody>
-      ${sel.sort(byId).map(h => `<tr data-uid="${h.uid}"><td class="mono">${esc(h.id)}</td><td>${chip(h)}</td><td class="num">${fmt(h.dDesign)}</td></tr>`).join('')}</tbody></table></div>`;
+      <div class="tblWrap"><table><thead><tr><th>ID</th><th>Tipo</th><th class="num">P. dis.</th><th class="num">Carga</th></tr></thead><tbody>
+      ${sel.sort(byId).map(h => `<tr data-uid="${h.uid}"><td class="mono">${esc(h.id)}</td><td>${chip(h)}</td><td class="num">${fmt(h.dDesign)}</td><td class="num">${fmt(h.charge)}</td></tr>`).join('')}</tbody></table></div>`;
     pane.querySelectorAll('[data-settype]').forEach(b => b.onclick = () => setTypeSel(b.dataset.settype));
-    $('applyGroup').onclick = () => { const v = $('f-mgroup').value.trim(); sel.forEach(h => h.group = v); save(); renderAll(); toast(`Malla asignada a ${sel.length} pozos.`); };
+    pane.querySelectorAll('[data-setstate]').forEach(b => b.onclick = () => { sel.forEach(h => h.state = b.dataset.setstate); save(); renderAll(); });
+    $('applyMany').onclick = () => {
+      const v = { group: $('m-group').value.trim(), stem: num($('m-stem').value), expl: $('m-expl').value.trim(), charge: num($('m-charge').value) };
+      let n = 0;
+      for (const k of Object.keys(v)) if (v[k] !== null && v[k] !== '') { sel.forEach(h => h[k] = v[k]); n++; }
+      save(); renderAll(); toast(n ? `Datos aplicados a ${sel.length} pozos.` : 'Completa al menos un campo para aplicar.');
+    };
     $('clearSel').onclick = () => { S.sel.clear(); renderAll(); };
     if (confirming) { $('delYes').onclick = () => deleteHoles(sel); $('delNo').onclick = () => { S.confirm = null; renderPanel(); }; }
     else $('delMany').onclick = () => { S.confirm = 'delmany'; renderPanel(); };
@@ -731,31 +828,44 @@ function renderPanel() {
     return;
   }
 
-  const h = sel[0]; const t = typeOf(h); const n = t ? t.n : 0;
+  const h = sel[0]; const t = typeOf(h); const ds = detsOf(h);
   const tc = tagCounts(); const dupKey = dupIds().get(h.page + '|' + (h.group || '') + '|' + h.id) > 1;
-  const diff = h.dReal !== null && h.dDesign !== null ? h.dReal - h.dDesign : null;
-  const diffCls = diff === null ? '' : Math.abs(diff) < 0.05 ? 'zero' : diff < 0 ? 'neg' : 'pos';
-  let tagsHtml = '';
-  for (let i = 0; i < n; i++) {
-    const v = (h.tags || [])[i] || '';
-    tagsHtml += `<div class="field"><label for="f-tag${i}">N° etiqueta ${n > 1 ? i + 1 : ''}</label>
-      <input id="f-tag${i}" class="mono" data-tag="${i}" value="${esc(v)}" autocomplete="off" placeholder="Número de etiqueta">
-      ${v && tc.get(v) > 1 ? '<span class="tagWarn">Este número de etiqueta ya está usado en otro pozo.</span>' : ''}</div>`;
+  let detHtml = '';
+  if (ds.length) {
+    detHtml = `<div class="dets"><div class="detsHead"><span>#</span><span>Etiqueta (código)</span><span>Retardo (ms)</span></div>
+      ${ds.map((d, i) => `<div class="detRow"><span class="mono">${i + 1}</span>
+        <input id="f-tag${i}" class="mono" data-tag="${i}" value="${esc(d.tag)}" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Código" aria-label="Etiqueta detonador ${i + 1}">
+        <input id="f-del${i}" class="mono" data-delay="${i}" value="${d.delay ?? ''}" inputmode="numeric" placeholder="ms" aria-label="Retardo detonador ${i + 1} en ms">
+        <span class="tagWarn" data-warn="${i}" ${d.tag && tc.get(d.tag) > 1 ? '' : 'hidden'}>Esta etiqueta ya está usada en otro pozo.</span></div>`).join('')}</div>`;
   }
   const confirming = S.confirm === 'del';
   pane.innerHTML = `
     <div class="holeHead">
       <span class="sym">${symbolSvg(t, 34)}</span>
-      <div><p class="eyebrow">Pozo ${h.manual ? '· agregado a mano' : ''}</p><div class="num">${esc(h.id)}</div></div>
+      <div><p class="eyebrow">Pozo ${h.group ? '· ' + esc(h.group) : ''} ${h.manual ? '· agregado a mano' : ''}</p><div class="num">${esc(h.id)}</div></div>
       <div class="navBtns"><button class="btn small" type="button" id="prevH" title="Pozo anterior (←)">‹</button><button class="btn small" type="button" id="nextH" title="Pozo siguiente (→)">›</button></div>
     </div>
-    <div class="field"><span class="lbl">Tipo de etiquetado</span>${typeButtons(h.type)}</div>
-    ${tagsHtml || '<p class="hint">Elige Simple, Doble o Triple para cargar los números de etiqueta.</p>'}
+    <div class="field"><span class="lbl">Detonadores por pozo</span>${typeButtons(h.type)}</div>
+    ${detHtml || '<p class="hint">Elige Simple, Doble o Triple para cargar la etiqueta y el retardo de cada detonador.</p>'}
+    <p class="eyebrow" style="margin-top:14px">Perforación</p>
     <div class="grid2">
       <div class="field"><label for="f-dd">Prof. diseño (m)</label><input id="f-dd" class="mono" inputmode="decimal" value="${h.dDesign === null ? '' : h.dDesign.toFixed(1)}"></div>
       <div class="field"><label for="f-dr">Prof. real (m)</label><input id="f-dr" class="mono" inputmode="decimal" value="${h.dReal ?? ''}" placeholder="Medida en terreno"></div>
     </div>
-    <p class="diff ${diffCls}" id="diffLine">${diff === null ? '&nbsp;' : `Diferencia real − diseño: ${diff > 0 ? '+' : ''}${fmt(diff, 2)} m`}</p>
+    <p class="diff" id="diffLine"></p>
+    <div class="field"><span class="lbl">Estado del pozo</span>${stateButtons(h.state)}</div>
+    <div class="grid2">
+      <div class="field"><span class="lbl">Agua</span><label class="check" for="f-water"><input type="checkbox" id="f-water" ${h.water ? 'checked' : ''}> Pozo con agua</label></div>
+      <div class="field"><label for="f-wl">Altura de agua (m)</label><input id="f-wl" class="mono" inputmode="decimal" value="${h.waterLvl ?? ''}" ${h.water ? '' : 'disabled'}></div>
+    </div>
+    <p class="eyebrow" style="margin-top:14px">Carguío</p>
+    <div class="grid2">
+      <div class="field"><label for="f-stem">Taco (m)</label><input id="f-stem" class="mono" inputmode="decimal" value="${h.stem ?? ''}"></div>
+      <div class="field"><label for="f-charge">Carga explosivo (kg)</label><input id="f-charge" class="mono" inputmode="decimal" value="${h.charge ?? ''}"></div>
+    </div>
+    <p class="hint" id="clenLine" style="margin:6px 0 10px"></p>
+    <div class="field"><label for="f-expl">Tipo de explosivo</label><input id="f-expl" list="explOpts" value="${esc(h.expl)}" placeholder="Elige o escribe"></div>
+    <p class="eyebrow" style="margin-top:14px">Identificación</p>
     <div class="grid2">
       <div class="field"><label for="f-id">ID pozo</label><input id="f-id" class="mono" value="${esc(h.id)}">${dupKey ? '<span class="tagWarn">ID repetido en esta malla. Asigna la malla para diferenciarlos.</span>' : ''}</div>
       <div class="field"><label for="f-group">Malla / disparo</label><input id="f-group" value="${esc(h.group || '')}" placeholder="Ej.: F082400_03"></div>
@@ -765,14 +875,30 @@ function renderPanel() {
       ${confirming ? `<span class="hint">¿Eliminar el pozo ${esc(h.id)}?</span><button class="btn small danger solid" type="button" id="delYes">Eliminar</button><button class="btn small" type="button" id="delNo">Cancelar</button>`
         : `<button class="btn small danger" type="button" id="delOne">Eliminar pozo</button>`}
     </div>`;
+  updDiff(h);
+  const det = (i) => { while (h.dets.length <= i) h.dets.push({ tag: '', delay: null }); return h.dets[i]; };
+  const nextFrom = (el) => { const all = [...pane.querySelectorAll('[data-tag],[data-delay],#f-dr')]; const nx = all[all.indexOf(el) + 1]; if (nx) { nx.focus(); nx.select?.(); } };
   pane.querySelectorAll('[data-settype]').forEach(b => b.onclick = () => setTypeSel(b.dataset.settype));
+  pane.querySelectorAll('[data-setstate]').forEach(b => b.onclick = () => { h.state = b.dataset.setstate; save(); renderAll(); });
   pane.querySelectorAll('[data-tag]').forEach(inp => {
-    inp.oninput = () => { h.tags = h.tags || []; h.tags[+inp.dataset.tag] = inp.value.trim(); save(); renderOverlay(); renderTable(); };
-    inp.onchange = () => renderPanelKeepFocus();
-    inp.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); const nx = pane.querySelector(`[data-tag="${+inp.dataset.tag + 1}"]`) || $('f-dr'); nx.focus(); nx.select?.(); } };
+    inp.oninput = () => {
+      const d = det(+inp.dataset.tag); d.tag = inp.value.trim().toUpperCase(); save(); renderOverlay(); renderTable();
+      const c = tagCounts(); pane.querySelectorAll('[data-warn]').forEach(w => { const v = h.dets[+w.dataset.warn]?.tag; w.hidden = !(v && c.get(v) > 1); });
+    };
+    inp.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); nextFrom(inp); } };
   });
-  $('f-dd').oninput = (e) => { h.dDesign = num(e.target.value); save(); updDiff(h); renderTable(); };
-  $('f-dr').oninput = (e) => { h.dReal = num(e.target.value); save(); updDiff(h); renderTable(); };
+  pane.querySelectorAll('[data-delay]').forEach(inp => {
+    inp.oninput = () => { const v = num(inp.value); det(+inp.dataset.delay).delay = v === null ? null : Math.round(v); save(); renderOverlay(); renderTable(); };
+    inp.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); nextFrom(inp); } };
+  });
+  const bindNum = (id, k, extra) => { $(id).oninput = (e) => { h[k] = num(e.target.value); save(); extra?.(); renderTable(); }; };
+  bindNum('f-dd', 'dDesign', () => updDiff(h));
+  bindNum('f-dr', 'dReal', () => updDiff(h));
+  bindNum('f-stem', 'stem', () => updDiff(h));
+  bindNum('f-charge', 'charge');
+  bindNum('f-wl', 'waterLvl');
+  $('f-water').onchange = (e) => { h.water = e.target.checked; if (!h.water) h.waterLvl = null; save(); renderAll(); };
+  $('f-expl').onchange = (e) => { h.expl = e.target.value.trim(); save(); renderTable(); };
   $('f-dr').onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); step(1); } };
   $('f-id').onchange = (e) => { h.id = e.target.value.trim() || h.id; save(); renderAll(); };
   $('f-group').onchange = (e) => { h.group = e.target.value.trim(); save(); renderAll(); };
@@ -781,20 +907,17 @@ function renderPanel() {
   if (confirming) { $('delYes').onclick = () => deleteHoles([h]); $('delNo').onclick = () => { S.confirm = null; renderPanel(); }; }
   else $('delOne').onclick = () => { S.confirm = 'del'; renderPanel(); };
 }
-function renderPanelKeepFocus() {
-  const id = document.activeElement?.id; renderPanel(); renderLegend();
-  if (id && $(id)) $(id).focus();
-}
 function updDiff(h) {
   const el = $('diffLine'); if (!el) return;
   const diff = h.dReal !== null && h.dDesign !== null ? h.dReal - h.dDesign : null;
   el.className = 'diff ' + (diff === null ? '' : Math.abs(diff) < 0.05 ? 'zero' : diff < 0 ? 'neg' : 'pos');
-  el.innerHTML = diff === null ? '&nbsp;' : `Diferencia real − diseño: ${diff > 0 ? '+' : ''}${fmt(diff, 2)} m`;
+  el.innerHTML = diff === null ? '&nbsp;' : `Diferencia real - diseño: ${diff > 0 ? '+' : ''}${fmt(diff, 2)} m`;
+  const cl = chargeLen(h);
+  $('clenLine').textContent = cl === null ? 'Ingresa el taco para calcular el largo de columna de carga.' : `Largo de columna de carga: ${fmt(cl, 2)} m (prof. ${h.dReal !== null ? 'real' : 'diseño'} - taco)`;
 }
 function focusFirstEmpty() {
-  const tags = [...document.querySelectorAll('#pane-pozo [data-tag]')];
   if (matchMedia('(pointer: coarse)').matches) return; // en teléfono no abrir el teclado solo
-  const e = tags.find(i => !i.value); if (e) e.focus();
+  const e = [...document.querySelectorAll('#pane-pozo [data-tag]')].find(i => !i.value); if (e) e.focus();
 }
 function setTypeSel(key) {
   if (key === '__mixed') return;
@@ -816,15 +939,22 @@ function deleteHoles(list) {
 }
 
 function stats() {
-  const by = new Map(); let none = 0, dets = 0, mD = 0, mR = 0, nR = 0, tagsMissing = 0;
+  const by = new Map(), byExpl = new Map(); let none = 0, dets = 0, mD = 0, mR = 0, nR = 0, tagsMissing = 0, delaysMissing = 0, kg = 0, nKg = 0, water = 0, tapado = 0, repasado = 0;
   for (const h of S.holes) {
     const t = typeOf(h);
-    if (t) { by.set(t.key, (by.get(t.key) || 0) + 1); dets += t.n; for (let i = 0; i < t.n; i++) if (!(h.tags || [])[i]) tagsMissing++; } else none++;
+    if (t) {
+      by.set(t.key, (by.get(t.key) || 0) + 1); dets += t.n;
+      for (const d of detsOf(h)) { if (!d.tag) tagsMissing++; if (d.delay === null) delaysMissing++; }
+    } else none++;
     if (h.dDesign !== null) mD += h.dDesign;
     if (h.dReal !== null) { mR += h.dReal; nR++; }
+    if (h.charge !== null) { kg += h.charge; nKg++; const k = h.expl || 'Sin especificar'; byExpl.set(k, (byExpl.get(k) || 0) + h.charge); }
+    if (h.water) water++;
+    if (h.state === 'tapado') tapado++;
+    if (h.state === 'repasado') repasado++;
   }
   const dupTags = [...tagCounts()].filter(([, c]) => c > 1).map(([k]) => k);
-  return { by, none, dets, mD, mR, nR, tagsMissing, dupTags, total: S.holes.length };
+  return { by, byExpl, none, dets, mD, mR, nR, tagsMissing, delaysMissing, kg, nKg, water, tapado, repasado, dupTags, total: S.holes.length };
 }
 function summaryHtml() {
   const s = stats();
@@ -834,9 +964,14 @@ function summaryHtml() {
       <div class="stat"><div class="v">${s.dets}</div><div class="k">Detonadores (según tipo)</div></div>
       <div class="stat"><div class="v">${fmt(s.mD)}</div><div class="k">Metros diseño</div></div>
       <div class="stat"><div class="v">${fmt(s.mR)}</div><div class="k">Metros reales (${s.nR} pozos medidos)</div></div>
+      <div class="stat"><div class="v">${fmt(s.kg)}</div><div class="k">kg explosivo (${s.nKg} pozos)</div></div>
       <div class="stat"><div class="v">${s.none}</div><div class="k">Pozos sin tipo</div></div>
       <div class="stat"><div class="v">${s.tagsMissing}</div><div class="k">Etiquetas por cargar</div></div>
+      <div class="stat"><div class="v">${s.delaysMissing}</div><div class="k">Retardos por cargar</div></div>
+      <div class="stat"><div class="v">${s.water}</div><div class="k">Pozos con agua</div></div>
+      <div class="stat"><div class="v">${s.tapado} / ${s.repasado}</div><div class="k">Tapados / repasados</div></div>
     </div>
+    ${s.byExpl.size ? `<p class="hint">${[...s.byExpl].map(([k, v]) => `${esc(k)}: <span class="mono">${fmt(v)} kg</span>`).join(' · ')}</p>` : ''}
     ${s.dupTags.length ? `<p class="tagWarn">Etiquetas repetidas: <span class="mono">${s.dupTags.map(esc).join(', ')}</span></p>` : ''}`;
 }
 
@@ -844,26 +979,32 @@ function summaryHtml() {
 function chip(h) { const t = typeOf(h); return `<span class="chip">${symbolSvg(t, 14)}${t ? esc(t.name) : '<span class="hint">—</span>'}</span>`; }
 function renderTypeFilter() {
   const f = $('fType'); const cur = f.value;
-  f.innerHTML = `<option value="*">Todos los tipos</option><option value="">Sin tipo</option>` + S.types.map(t => `<option value="${esc(t.key)}">${esc(t.name)}</option>`).join('');
+  f.innerHTML = `<option value="*">Todos los tipos</option><option value="">Sin tipo</option>` + S.types.map(t => `<option value="${esc(t.key)}">${esc(t.name)}</option>`).join('')
+    + `<option value="@agua">Con agua</option><option value="@tapado">Tapados</option><option value="@repasado">Repasados</option><option value="@pend">Con datos pendientes</option>`;
   f.value = cur && [...f.options].some(o => o.value === cur) ? cur : (cur === '' && f.dataset.ready ? '' : '*'); f.dataset.ready = '1';
 }
+function pending(h) { const ds = detsOf(h); return !typeOf(h) || ds.some(d => !d.tag || d.delay === null) || h.dReal === null; }
 function renderTable() {
   if ($('pane-lista').hidden) return;
   const q = $('fText').value.trim().toLowerCase(); const ft = $('fType').value;
   const dups = dupIds();
   const rows = S.holes.filter(h => {
-    if (ft !== '*' && (typeOf(h) ? h.type : '') !== ft) return false;
+    if (ft === '@agua') { if (!h.water) return false; }
+    else if (ft === '@tapado' || ft === '@repasado') { if (h.state !== ft.slice(1)) return false; }
+    else if (ft === '@pend') { if (!pending(h)) return false; }
+    else if (ft !== '*' && (typeOf(h) ? h.type : '') !== ft) return false;
     if (!q) return true;
-    return [h.id, h.group, h.obs, ...(h.tags || [])].some(v => String(v || '').toLowerCase().includes(q));
+    return [h.id, h.group, h.obs, h.expl, ...h.dets.map(d => d.tag)].some(v => String(v || '').toLowerCase().includes(q));
   }).sort((a, b) => a.page - b.page || byId(a, b));
   $('tblBody').innerHTML = rows.map(h => {
-    const t = typeOf(h); const dup = dups.get(h.page + '|' + (h.group || '') + '|' + h.id) > 1;
+    const dup = dups.get(h.page + '|' + (h.group || '') + '|' + h.id) > 1;
+    const marks = (h.water ? '<span title="Con agua" style="color:' + MARK_WATER + '">●</span>' : '') + (h.state ? `<span class="hint" title="${stateName(h.state)}"> ${stateName(h.state).slice(0, 3)}.</span>` : '');
     return `<tr data-uid="${h.uid}" class="${S.sel.has(h.uid) ? 'sel' : ''}">
-      <td class="mono">${esc(h.id)}${dup ? ' <span class="dupMark" title="ID repetido">!</span>' : ''}${S.pageCount > 1 ? `<span class="hint"> p${h.page}</span>` : ''}</td>
+      <td class="mono">${esc(h.id)}${dup ? ' <span class="dupMark" title="ID repetido">!</span>' : ''}${S.pageCount > 1 ? `<span class="hint"> p${h.page}</span>` : ''} ${marks}</td>
       <td>${esc(h.group || '')}</td><td>${chip(h)}</td>
-      <td class="mono">${t ? esc((h.tags || []).slice(0, t.n).filter(Boolean).join(' / ')) : ''}</td>
-      <td class="num">${fmt(h.dDesign)}</td><td class="num">${fmt(h.dReal)}</td></tr>`;
-  }).join('') || `<tr><td colspan="6" class="hint">Sin pozos para este filtro.</td></tr>`;
+      <td class="mono">${esc(detsOf(h).filter(d => d.tag).map(d => detLabel(d)).join(' / '))}</td>
+      <td class="num">${fmt(h.dDesign)}</td><td class="num">${fmt(h.dReal)}</td><td class="num">${fmt(h.stem)}</td><td class="num">${fmt(h.charge)}</td></tr>`;
+  }).join('') || `<tr><td colspan="8" class="hint">Sin pozos para este filtro.</td></tr>`;
   $('tblBody').querySelectorAll('tr[data-uid]').forEach(tr => tr.onclick = async () => {
     const h = S.holes.find(x => x.uid === +tr.dataset.uid); if (!h) return;
     if (h.page !== S.pageNum) { S.pageNum = h.page; await renderPage(); }
@@ -878,8 +1019,8 @@ function renderSimb() {
   const counts = new Map(); for (const h of S.holes) if (h.type) counts.set(h.type, (counts.get(h.type) || 0) + 1);
   const opts = (cur) => Object.entries(SYMBOLS).map(([k, v]) => `<option value="${k}" ${k === cur ? 'selected' : ''}>${v}</option>`).join('');
   $('pane-simb').innerHTML = `
-    <p class="eyebrow">Tipos de etiquetado</p>
-    <p class="hint">Cada tipo define el color, el símbolo en el plano y cuántos números de etiqueta lleva el pozo.</p>
+    <p class="eyebrow">Detonadores por pozo</p>
+    <p class="hint">Cada tipo define el color, el símbolo en el plano y cuántos detonadores lleva el pozo (cada uno con su etiqueta y retardo).</p>
     ${S.types.map((t, i) => `<div class="typeRow" data-i="${i}">
       <span>${symbolSvg(t, 28)}</span>
       <input type="text" id="tn-${i}" value="${esc(t.name)}" aria-label="Nombre del tipo">
@@ -887,14 +1028,16 @@ function renderSimb() {
       <div class="cfg">
         <input type="color" id="tc-${i}" value="${t.color}" aria-label="Color">
         <select id="ts-${i}" aria-label="Símbolo">${opts(t.symbol)}</select>
-        <label class="hint" for="tq-${i}">Etiquetas</label><input type="number" id="tq-${i}" min="1" max="6" value="${t.n}">
+        <label class="hint" for="tq-${i}">Detonadores</label><input type="number" id="tq-${i}" min="1" max="6" value="${t.n}">
         ${S.confirm === 'deltype' + i ? `<button class="btn small danger solid" type="button" data-tdel-yes="${i}">Quitar</button><button class="btn small" type="button" data-tdel-no>Cancelar</button>`
           : `<button class="btn small danger" type="button" data-tdel="${i}" title="Quitar tipo">Quitar</button>`}
       </div></div>`).join('')}
     <div class="rowBtns" style="margin-top:10px"><button class="btn small" type="button" id="addType">+ Agregar tipo</button><button class="btn small" type="button" id="resetTypes">Restablecer Simple / Doble / Triple</button></div>
     <div class="sectionGap"></div>
     <p class="eyebrow">Vista del plano</p>
-    <label class="check"><input type="checkbox" id="optTags" ${S.settings.showTags ? 'checked' : ''}> Mostrar números de etiqueta junto al pozo</label>
+    <label class="check"><input type="checkbox" id="optTags" ${S.settings.showTags ? 'checked' : ''}> Mostrar etiquetas junto al pozo</label>
+    <label class="check"><input type="checkbox" id="optDelay" ${S.settings.showDelay ? 'checked' : ''}> Incluir el retardo (ms) junto a la etiqueta</label>
+    <label class="check"><input type="checkbox" id="optMarks" ${S.settings.showMarks ? 'checked' : ''}> Mostrar marcas de agua, tapado y repasado</label>
     <label class="check"><input type="checkbox" id="optUn" ${S.settings.showUnassigned ? 'checked' : ''}> Mostrar pozos sin tipo (círculo punteado)</label>
     <div class="sectionGap"></div>
     <p class="eyebrow">Detección</p>
@@ -924,6 +1067,8 @@ function renderSimb() {
     commitTypes();
   };
   $('optTags').onchange = (e) => { S.settings.showTags = e.target.checked; save(); renderOverlay(); };
+  $('optDelay').onchange = (e) => { S.settings.showDelay = e.target.checked; save(); renderOverlay(); };
+  $('optMarks').onchange = (e) => { S.settings.showMarks = e.target.checked; save(); renderOverlay(); renderLegend(); };
   $('optUn').onchange = (e) => { S.settings.showUnassigned = e.target.checked; save(); renderOverlay(); };
   if ($('redetect')) $('redetect').onclick = () => { S.confirm = 'redetect'; renderSimb(); };
   if ($('redetYes')) $('redetYes').onclick = async () => {
@@ -986,10 +1131,22 @@ menu.querySelectorAll('[data-exp]').forEach(b => b.onclick = async () => {
   const k = b.dataset.exp;
   if (k === 'import') { $('fileJson').click(); return; }
   if (!S.vp) { toast('Primero abre un plano.'); return; }
+  const pdfBlob = async (opts) => { toast('Generando PDF…'); return new Blob([await buildPdf(opts)], { type: 'application/pdf' }); };
   try {
+    if (k === 'pdf-full') await saveFile(baseName() + '_informe_completo.pdf', await pdfBlob({ plan: true, report: true }));
+    if (k === 'pdf-plan') await saveFile(baseName() + '_plano_anotado.pdf', await pdfBlob({ plan: true, report: false }));
+    if (k === 'pdf-report') await saveFile(baseName() + '_informe.pdf', await pdfBlob({ plan: false, report: true }));
+    if (k === 'print') {
+      const blob = await pdfBlob({ plan: true, report: true });
+      const url = URL.createObjectURL(blob); let w = null;
+      try { w = window.open(url, '_blank'); } catch { w = null; }
+      if (w) toast('Informe abierto en otra pestaña. Imprímelo desde ahí.');
+      else await saveFile(baseName() + '_informe_completo.pdf', blob);
+    }
+    if (k === 'txt') await saveFile(baseName() + '_informe.txt', '﻿' + buildTxt());
     if (k === 'csv') await saveFile(baseName() + '_pozos.csv', '﻿' + buildCsv());
-    if (k === 'json') await saveFile(baseName() + '_respaldo.json', JSON.stringify({ app: 'malla-tronadura', version: 1, fileName: S.fileName, docKey: S.docKey, exportedAt: new Date().toISOString(), types: S.types, settings: S.settings, holes: S.holes }, null, 1));
-    if (k === 'pdf') { toast('Generando PDF…'); await saveFile(baseName() + '_anotado.pdf', new Blob([await buildPdf()], { type: 'application/pdf' })); }
+    if (k === 'csv-det') await saveFile(baseName() + '_detonadores.csv', '﻿' + buildCsvDets());
+    if (k === 'json') await saveFile(baseName() + '_respaldo.json', JSON.stringify({ app: 'malla-tronadura', version: 2, fileName: S.fileName, docKey: S.docKey, exportedAt: new Date().toISOString(), types: S.types, settings: S.settings, holes: S.holes }, null, 1));
   } catch (err) { console.error(err); toast('No se pudo exportar: ' + (err.message || err.code || err), 5000); }
 });
 function baseName() { return (S.fileName || 'malla').replace(/\.pdf$/i, '').replace(/[^\w\-]+/g, '_'); }
@@ -1006,67 +1163,214 @@ async function saveFile(name, data) {
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   toast('Descargando ' + name);
 }
-function buildCsv() {
-  const maxN = Math.max(1, ...S.types.map(t => t.n));
-  const head = ['Página', 'Malla', 'ID pozo', 'Tipo', 'N° etiquetas'];
-  for (let i = 1; i <= maxN; i++) head.push('Etiqueta ' + i);
-  head.push('Prof. diseño (m)', 'Prof. real (m)', 'Diferencia (m)', 'Observaciones', 'X plano', 'Y plano', 'Origen');
-  const q = (v) => { const s = String(v ?? ''); return /[;"\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
-  const dec = (v, d = 2) => v === null || v === undefined ? '' : v.toFixed(d).replace('.', ',');
-  const rows = [head];
-  for (const h of [...S.holes].sort((a, b) => a.page - b.page || byId(a, b))) {
-    const t = typeOf(h); const r = [h.page, h.group || '', h.id, t ? t.name : 'Sin tipo', t ? t.n : 0];
-    for (let i = 0; i < maxN; i++) r.push(t && i < t.n ? (h.tags || [])[i] || '' : '');
-    r.push(dec(h.dDesign, 1), dec(h.dReal, 2), h.dReal !== null && h.dDesign !== null ? dec(h.dReal - h.dDesign, 2) : '', h.obs || '', dec(h.x, 1), dec(h.y, 1), h.manual ? 'Manual' : 'Plano');
-    rows.push(r);
+function sortedHoles() { return [...S.holes].sort((a, b) => a.page - b.page || byId(a, b)); }
+const dec = (v, d = 2) => v === null || v === undefined ? '' : v.toFixed(d).replace('.', ',');
+const nowCl = () => new Date().toLocaleString('es-CL');
+
+/** Filas del informe (mismas columnas en PDF y TXT). */
+function reportRows() {
+  return sortedHoles().map(h => {
+    const t = typeOf(h); const diff = h.dReal !== null && h.dDesign !== null ? h.dReal - h.dDesign : null;
+    return {
+      group: h.group || '', id: String(h.id), type: t ? t.name : 'Sin tipo',
+      dets: detsOf(h).map((d, i) => `${i + 1}) ${d.tag || '—'}  ${d.delay !== null ? d.delay + ' ms' : '— ms'}`),
+      dd: dec(h.dDesign, 1), dr: dec(h.dReal, 2), diff: diff === null ? '' : (diff > 0 ? '+' : '') + dec(diff, 2),
+      stem: dec(h.stem, 2), clen: dec(chargeLen(h), 2), expl: h.expl || '', kg: dec(h.charge, 1),
+      water: h.water ? 'Sí' + (h.waterLvl !== null ? ' ' + dec(h.waterLvl, 1) + ' m' : '') : 'No',
+      state: stateName(h.state), obs: (h.obs || '').replace(/\s+/g, ' ').trim(),
+    };
+  });
+}
+function summaryLines() {
+  const s = stats();
+  const groups = [...new Set(S.holes.map(h => h.group).filter(Boolean))];
+  const L = [
+    `Plano: ${S.fileName}`,
+    `Malla(s): ${groups.length ? groups.join(', ') : 'sin asignar'}`,
+    `Fecha de emisión: ${nowCl()}`,
+    `Pozos: ${s.total}  |  ` + S.types.map(t => `${t.name}: ${s.by.get(t.key) || 0}`).join('  |  ') + `  |  Sin tipo: ${s.none}`,
+    `Detonadores: ${s.dets}  |  Etiquetas pendientes: ${s.tagsMissing}  |  Retardos pendientes: ${s.delaysMissing}`,
+    `Metros diseño: ${dec(s.mD, 1)} m  |  Metros reales: ${dec(s.mR, 1)} m (${s.nR} pozos medidos)`,
+    `Explosivo total: ${dec(s.kg, 1)} kg (${s.nKg} pozos)` + (s.byExpl.size ? '  |  ' + [...s.byExpl].map(([k, v]) => `${k}: ${dec(v, 1)} kg`).join('  |  ') : ''),
+    `Pozos con agua: ${s.water}  |  Tapados: ${s.tapado}  |  Repasados: ${s.repasado}`,
+  ];
+  if (s.dupTags.length) L.push(`ATENCIÓN - etiquetas repetidas: ${s.dupTags.join(', ')}`);
+  return L;
+}
+
+function buildTxt() {
+  const rows = reportRows();
+  const cols = [
+    ['Malla', 'group', 12], ['ID', 'id', 6], ['Tipo', 'type', 8], ['P.dis', 'dd', 6, 1], ['P.real', 'dr', 7, 1], ['Dif', 'diff', 6, 1],
+    ['Taco', 'stem', 6, 1], ['L.carga', 'clen', 7, 1], ['Explosivo', 'expl', 14], ['kg', 'kg', 7, 1], ['Agua', 'water', 9], ['Estado', 'state', 9],
+  ];
+  const cell = (v, w, right) => { v = String(v ?? ''); if (v.length > w) v = v.slice(0, w - 1) + '~'; return right ? v.padStart(w) : v.padEnd(w); };
+  const line = (r) => cols.map(([, k, w, right]) => cell(r[k], w, right)).join(' ');
+  const head = cols.map(([n, , w, right]) => cell(n, w, right)).join(' ');
+  const out = ['INFORME DE MALLA DE TRONADURA', '='.repeat(head.length), ...summaryLines(), '', head, '-'.repeat(head.length)];
+  for (const r of rows) {
+    out.push(line(r));
+    r.dets.forEach(d => out.push(' '.repeat(28) + 'Det. ' + d));
+    if (r.obs) out.push(' '.repeat(28) + 'Obs.: ' + r.obs);
   }
+  out.push('-'.repeat(head.length), 'P.dis/P.real/Dif/Taco/L.carga en metros. L.carga = profundidad (real o diseño) - taco. Retardos en ms.');
+  return out.join('\r\n') + '\r\n';
+}
+function csvJoin(rows) {
+  const q = (v) => { const s = String(v ?? ''); return /[;"\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
   return rows.map(r => r.map(q).join(';')).join('\r\n');
 }
+function buildCsv() {
+  const maxN = Math.max(1, ...S.types.map(t => t.n));
+  const head = ['Página', 'Malla', 'ID pozo', 'Tipo', 'N° detonadores'];
+  for (let i = 1; i <= maxN; i++) head.push(`Det ${i} etiqueta`, `Det ${i} retardo (ms)`);
+  head.push('Prof. diseño (m)', 'Prof. real (m)', 'Diferencia (m)', 'Taco (m)', 'Largo carga (m)', 'Explosivo', 'Carga (kg)', 'Agua', 'Altura agua (m)', 'Estado', 'Observaciones', 'X plano', 'Y plano', 'Origen');
+  const rows = [head];
+  for (const h of sortedHoles()) {
+    const t = typeOf(h); const ds = detsOf(h);
+    const r = [h.page, h.group || '', h.id, t ? t.name : 'Sin tipo', t ? t.n : 0];
+    for (let i = 0; i < maxN; i++) r.push(ds[i]?.tag || '', ds[i]?.delay ?? '');
+    r.push(dec(h.dDesign, 1), dec(h.dReal, 2), h.dReal !== null && h.dDesign !== null ? dec(h.dReal - h.dDesign, 2) : '',
+      dec(h.stem, 2), dec(chargeLen(h), 2), h.expl || '', dec(h.charge, 1), h.water ? 'Sí' : 'No', dec(h.waterLvl, 2), stateName(h.state),
+      h.obs || '', dec(h.x, 1), dec(h.y, 1), h.manual ? 'Manual' : 'Plano');
+    rows.push(r);
+  }
+  return csvJoin(rows);
+}
+/** Un detonador por fila: útil para cargar la programación de retardos. */
+function buildCsvDets() {
+  const rows = [['Malla', 'ID pozo', 'Tipo', 'N° detonador', 'Etiqueta', 'Retardo (ms)', 'Prof. real (m)', 'Estado']];
+  for (const h of sortedHoles()) {
+    const t = typeOf(h); if (!t) continue;
+    detsOf(h).forEach((d, i) => rows.push([h.group || '', h.id, t.name, i + 1, d.tag, d.delay ?? '', dec(h.dReal ?? h.dDesign, 2), stateName(h.state)]));
+  }
+  return csvJoin(rows);
+}
+
 function hexRgb(hex) { const n = parseInt(hex.slice(1), 16); return PDFLib.rgb(((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255); }
-async function buildPdf() {
+/** Las fuentes estándar del PDF solo admiten Latin-1 (WinAnsi). */
+const W = (s) => String(s ?? '').replace(/[−–—]/g, '-').replace(/…/g, '...').replace(/[^\x20-\x7E\xA0-\xFF]/g, '?');
+function fitText(font, s, size, w) {
+  s = W(s); if (font.widthOfTextAtSize(s, size) <= w) return s;
+  while (s.length > 1 && font.widthOfTextAtSize(s + '...', size) > w) s = s.slice(0, -1);
+  return s + '...';
+}
+
+async function buildPdf({ plan = true, report = true } = {}) {
   const { PDFDocument, StandardFonts, rgb } = PDFLib;
-  const doc = await PDFDocument.load(S.bytes.slice(0));
+  const doc = plan ? await PDFDocument.load(S.bytes.slice(0)) : await PDFDocument.create();
   const font = await doc.embedFont(StandardFonts.Helvetica);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
-  const pages = doc.getPages();
   const s = stats();
-  for (let p = 1; p <= pages.length; p++) {
-    const page = pages[p - 1]; const hs = S.holes.filter(h => h.page === p && typeOf(h));
-    if (!hs.length && p !== S.pageNum) continue;
-    const r = S.r; // misma escala que en pantalla (unidades de página)
-    for (const h of hs) {
-      const t = typeOf(h); const c = hexRgb(t.color);
-      symbolPaths(t.symbol, r).forEach((d, i) => page.drawSvgPath(d, {
-        x: h.x, y: h.y, color: i === 0 ? c : undefined, opacity: 0.28, borderColor: c, borderWidth: r * 0.26, borderOpacity: 1,
-      }));
-      const tags = (h.tags || []).slice(0, t.n).filter(Boolean);
-      const fs = r * 0.95, y0 = ((tags.length - 1) * fs) / 2 - fs * 0.35;
-      tags.forEach((x, i) => page.drawText(x, { x: h.x + r * 1.45, y: h.y + y0 - i * fs, size: fs, font, color: c }));
-    }
-    // Cuadro de simbología en la esquina inferior izquierda
-    const { x: bx0, y: by0 } = page.getMediaBox();
-    const lh = 9, rows = S.types.length + 3, w = 150, hgt = rows * lh + 10, x0 = bx0 + 12, y0 = by0 + 12;
-    page.drawRectangle({ x: x0, y: y0, width: w, height: hgt, color: rgb(1, 1, 1), opacity: 0.92, borderColor: rgb(0.2, 0.2, 0.2), borderWidth: 0.6 });
-    let y = y0 + hgt - 11;
-    page.drawText('SIMBOLOGÍA ETIQUETADO', { x: x0 + 6, y, size: 6.5, font: bold, color: rgb(0.1, 0.1, 0.1) }); y -= lh;
-    for (const t of S.types) {
-      const c = hexRgb(t.color);
-      symbolPaths(t.symbol, 3).forEach((d, i) => page.drawSvgPath(d, { x: x0 + 10, y: y + 2.2, color: i === 0 ? c : undefined, opacity: .28, borderColor: c, borderWidth: .8 }));
-      page.drawText(`${t.name} (${t.n} etiq.)`, { x: x0 + 18, y, size: 6.5, font, color: rgb(0.1, 0.1, 0.1) });
-      page.drawText(String(s.by.get(t.key) || 0), { x: x0 + w - 22, y, size: 6.5, font: bold, color: rgb(0.1, 0.1, 0.1) });
+  if (plan) {
+    const pages = doc.getPages();
+    for (let p = 1; p <= pages.length; p++) {
+      const page = pages[p - 1]; const hs = S.holes.filter(h => h.page === p);
+      if (!hs.some(typeOf) && p !== S.pageNum) continue;
+      const r = S.r; // misma escala que en pantalla (unidades de página)
+      for (const h of hs) {
+        const t = typeOf(h);
+        if (t) {
+          const c = hexRgb(t.color);
+          symbolPaths(t.symbol, r).forEach((d, i) => page.drawSvgPath(d, {
+            x: h.x, y: h.y, color: i === 0 ? c : undefined, opacity: 0.28, borderColor: c, borderWidth: r * 0.26, borderOpacity: 1,
+          }));
+          const ds = detsOf(h).filter(d => d.tag);
+          const fs = r * 0.95, y0 = ((ds.length - 1) * fs) / 2 - fs * 0.35;
+          ds.forEach((d, i) => page.drawText(W(detLabel(d, S.settings.showDelay)), { x: h.x + r * 1.45, y: h.y + y0 - i * fs, size: fs, font, color: c }));
+        }
+        if (S.settings.showMarks) {
+          const m = r * 0.42, x = h.x - r * 1.55;
+          if (h.water) page.drawCircle({ x, y: h.y + r * 0.7, size: m, color: hexRgb(MARK_WATER) });
+          if (h.state === 'tapado') page.drawRectangle({ x: x - m, y: h.y - r * .25 - m * 2, width: m * 2, height: m * 2, color: hexRgb(MARK_TAPADO) });
+          if (h.state === 'repasado') page.drawCircle({ x, y: h.y - r * .25 - m, size: m, color: hexRgb(MARK_REPASADO) });
+        }
+      }
+      // Cuadro de simbología en la esquina inferior izquierda
+      const { x: bx0, y: by0 } = page.getMediaBox();
+      const lh = 9, rows = S.types.length + 4, w = 160, hgt = rows * lh + 10, x0 = bx0 + 12, y0 = by0 + 12;
+      page.drawRectangle({ x: x0, y: y0, width: w, height: hgt, color: rgb(1, 1, 1), opacity: 0.92, borderColor: rgb(0.2, 0.2, 0.2), borderWidth: 0.6 });
+      let y = y0 + hgt - 11;
+      page.drawText('SIMBOLOGÍA - DETONADORES POR POZO', { x: x0 + 6, y, size: 6.2, font: bold, color: rgb(0.1, 0.1, 0.1) }); y -= lh;
+      for (const t of S.types) {
+        const c = hexRgb(t.color);
+        symbolPaths(t.symbol, 3).forEach((d, i) => page.drawSvgPath(d, { x: x0 + 10, y: y + 2.2, color: i === 0 ? c : undefined, opacity: .28, borderColor: c, borderWidth: .8 }));
+        page.drawText(W(`${t.name} (${t.n} det.)`), { x: x0 + 18, y, size: 6.5, font, color: rgb(0.1, 0.1, 0.1) });
+        page.drawText(String(s.by.get(t.key) || 0), { x: x0 + w - 22, y, size: 6.5, font: bold, color: rgb(0.1, 0.1, 0.1) });
+        y -= lh;
+      }
+      if (S.settings.showMarks) {
+        page.drawCircle({ x: x0 + 10, y: y + 2.2, size: 2, color: hexRgb(MARK_WATER) }); page.drawText('Agua', { x: x0 + 15, y, size: 6, font });
+        page.drawRectangle({ x: x0 + 42, y: y + .2, width: 4, height: 4, color: hexRgb(MARK_TAPADO) }); page.drawText('Tapado', { x: x0 + 49, y, size: 6, font });
+        page.drawCircle({ x: x0 + 86, y: y + 2.2, size: 2, color: hexRgb(MARK_REPASADO) }); page.drawText('Repasado', { x: x0 + 91, y, size: 6, font });
+      }
       y -= lh;
+      page.drawText(W(`Detonadores: ${s.dets}   Explosivo: ${dec(s.kg, 1)} kg`), { x: x0 + 6, y, size: 6, font, color: rgb(0.25, 0.25, 0.25) }); y -= lh;
+      page.drawText(W(`Generado ${nowCl()}`), { x: x0 + 6, y, size: 5.5, font, color: rgb(0.4, 0.4, 0.4) });
     }
-    page.drawText(`Detonadores: ${s.dets}   Pozos sin tipo: ${s.none}`, { x: x0 + 6, y, size: 6, font, color: rgb(0.25, 0.25, 0.25) }); y -= lh;
-    page.drawText(`Generado ${new Date().toLocaleString('es-CL')}`, { x: x0 + 6, y, size: 5.5, font, color: rgb(0.4, 0.4, 0.4) });
   }
+  if (report) drawReport(doc, font, bold);
   return doc.save();
+}
+
+function drawReport(doc, font, bold) {
+  const { rgb } = PDFLib;
+  const PW = 792, PH = 612, M = 28, FS = 6.8, LH = 8.6;
+  const cols = [
+    ['Malla', 'group', 58], ['ID', 'id', 30], ['Tipo', 'type', 36], ['Detonadores (etiqueta  retardo)', 'dets', 128],
+    ['P.dis', 'dd', 28, 1], ['P.real', 'dr', 30, 1], ['Dif.', 'diff', 28, 1], ['Taco', 'stem', 28, 1], ['L.carga', 'clen', 32, 1],
+    ['Explosivo', 'expl', 62], ['kg', 'kg', 30, 1], ['Agua', 'water', 40], ['Estado', 'state', 44],
+  ];
+  const used = cols.reduce((a, c) => a + c[2], 0); cols.push(['Observaciones', 'obs', PW - 2 * M - used]);
+  const rows = reportRows(); const pages = [];
+  let page, y;
+  const ink = rgb(0.1, 0.12, 0.12), grey = rgb(0.45, 0.48, 0.48), rule = rgb(0.75, 0.78, 0.78);
+  const header = () => {
+    let x = M;
+    page.drawRectangle({ x: M, y: y - 3, width: PW - 2 * M, height: LH + 4, color: rgb(0.9, 0.93, 0.92) });
+    for (const [n, , w, right] of cols) {
+      const t = fitText(bold, n, FS, w - 4); const tw = bold.widthOfTextAtSize(t, FS);
+      page.drawText(t, { x: right ? x + w - 2 - tw : x + 2, y, size: FS, font: bold, color: ink }); x += w;
+    }
+    y -= LH + 6;
+  };
+  const newPage = (first) => {
+    page = doc.addPage([PW, PH]); pages.push(page); y = PH - M;
+    page.drawText(W('INFORME DE MALLA DE TRONADURA'), { x: M, y: y - 4, size: 13, font: bold, color: ink });
+    page.drawText(W(S.fileName), { x: PW - M - font.widthOfTextAtSize(W(S.fileName), 7.5), y: y - 2, size: 7.5, font, color: grey });
+    y -= 22;
+    if (first) {
+      for (const l of summaryLines()) { page.drawText(fitText(font, l, 7.8, PW - 2 * M), { x: M, y, size: 7.8, font, color: ink }); y -= 10.5; }
+      y -= 6;
+    }
+    header();
+  };
+  newPage(true);
+  for (const r of rows) {
+    const n = Math.max(1, r.dets.length); const h = n * LH + 3;
+    if (y - h < M + 14) newPage(false);
+    let x = M;
+    for (const [, k, w, right] of cols) {
+      const lines = k === 'dets' ? (r.dets.length ? r.dets : ['']) : [r[k]];
+      lines.forEach((v, i) => {
+        const t = fitText(font, v, FS, w - 4); const tw = font.widthOfTextAtSize(t, FS);
+        page.drawText(t, { x: right ? x + w - 2 - tw : x + 2, y: y - i * LH, size: FS, font, color: ink });
+      });
+      x += w;
+    }
+    y -= h;
+    page.drawLine({ start: { x: M, y: y + LH - 2 }, end: { x: PW - M, y: y + LH - 2 }, thickness: 0.4, color: rule });
+  }
+  y -= 4;
+  if (y > M + 14) page.drawText(W('Profundidades, diferencia, taco y largo de carga en metros. Largo de carga = profundidad (real o diseño) - taco. Retardos en ms.'), { x: M, y, size: 6.5, font, color: grey });
+  pages.forEach((p, i) => { const t = W(`Página ${i + 1} de ${pages.length}  ·  ${nowCl()}`); p.drawText(t, { x: PW - M - font.widthOfTextAtSize(t, 6.5), y: M - 12, size: 6.5, font, color: grey }); });
 }
 $('fileJson').onchange = async (e) => {
   const f = e.target.files[0]; e.target.value = ''; if (!f) return;
   const data = safeParse(await f.text());
   if (!data || !Array.isArray(data.holes)) { toast('El archivo no es un respaldo válido de esta aplicación.', 4000); return; }
   if (!S.pdf) { toast('Abre primero el plano PDF y luego importa el respaldo.', 4000); return; }
-  S.holes = data.holes; if (Array.isArray(data.types) && data.types.length) S.types = data.types;
+  S.holes = data.holes.map(normHole); if (Array.isArray(data.types) && data.types.length) S.types = data.types;
   S.settings = { ...S.settings, ...(data.settings || {}) };
   uidSeq = Math.max(0, ...S.holes.map(h => h.uid)) + 1; S.sel.clear();
   computeRadius(); save(); renderAll(); renderTypeFilter();
@@ -1107,13 +1411,19 @@ async function loadDemo() {
   const ok = await openPdf(bytes, 'Ejemplo - malla ficticia.pdf', { demo: true });
   if (!ok) return;
   // Datos ficticios para mostrar la simbología
-  let tag = 50101;
+  let tag = 4101;
   for (const h of S.holes) {
     const row = Math.floor(idNum(h.id) / 100), col = idNum(h.id) % 100;
     if (row === 1) h.type = 'T'; else if (row <= 3 || col === 1) h.type = 'D'; else if (row <= 6) h.type = 'S';
     const t = typeOf(h);
-    if (t && row <= 5) { h.tags = Array.from({ length: t.n }, () => String(tag++)); }
-    if (row <= 4) h.dReal = Math.round((h.dDesign + (((row * 7 + col * 3) % 9) - 4) * 0.1) * 100) / 100;
+    if (t && row <= 5) h.dets = Array.from({ length: t.n }, (_, i) => ({ tag: 'EJ' + (tag++), delay: row <= 3 ? col * 17 + row * 42 + i * 8 : null }));
+    if (row <= 4) {
+      h.dReal = Math.round((h.dDesign + (((row * 7 + col * 3) % 9) - 4) * 0.1) * 100) / 100;
+      h.stem = 4.5; h.expl = row === 1 ? 'Emulsión' : 'ANFO'; h.charge = Math.round((h.dReal - 4.5) * 48);
+    }
+    if ((row * 3 + col) % 11 === 0) { h.water = true; h.waterLvl = 1.5; }
+    if (row === 4 && col === 6) h.state = 'tapado';
+    if (row === 2 && col === 9) h.state = 'repasado';
   }
   S.sel.clear(); renderAll();
 }
@@ -1121,6 +1431,11 @@ async function loadDemo() {
 // ===================== Inicio =====================
 (async function init() {
   renderPanel();
+  const net = () => { $('netState').hidden = navigator.onLine !== false; };
+  window.addEventListener('online', net); window.addEventListener('offline', net); net();
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol) && !window.claude) {
+    navigator.serviceWorker.register('sw.js').catch(() => { /* sin modo offline instalable */ });
+  }
   const last = await idbGet();
   if (last && last.bytes) { const ok = await openPdf(new Uint8Array(last.bytes), last.name || 'plano.pdf'); if (ok) return; }
   await loadDemo();

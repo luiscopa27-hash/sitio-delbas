@@ -1,30 +1,43 @@
 # Malla de Tronadura
 
-Aplicación web (un solo archivo `index.html`, sin instalación) para trabajar sobre planos PDF de mallas de perforación y tronadura a cielo abierto.
+Aplicación web para trabajar sobre planos PDF de mallas de perforación y tronadura a cielo abierto. Funciona **con y sin internet** (en terreno).
 
 ## Qué hace
 
-- **Lee el plano PDF** (p. ej. exportado desde Vulcan) y detecta cada pozo a partir del texto: el **ID** (ej. `1008`) y la **profundidad de diseño** escrita justo debajo (ej. `12.0`). Las coordenadas de la grilla (8300, 25700) se descartan.
-- **Ficha por pozo**: tipo de etiquetado, N° de etiqueta(s), profundidad de diseño, profundidad real medida (con diferencia), malla/disparo y observaciones.
-- **Tipos de etiquetado** diferenciados por color y símbolo:
-  - Simple: círculo azul, 1 etiqueta
-  - Doble: círculo doble naranjo, 2 etiquetas
-  - Triple: triángulo rojo, 3 etiquetas
-  - Se pueden editar (color, símbolo, cantidad de etiquetas) y agregar tipos nuevos.
-- **Selección por área** (botón *Área* o Mayús + arrastrar) para asignar tipo o malla a varios pozos a la vez.
-- **Agregar pozo** a mano cuando no se detecta en el plano; eliminar pozos.
-- **Alertas**: N° de etiqueta repetido e ID de pozo repetido dentro de la misma malla.
-- **Resumen**: pozos por tipo, detonadores totales, metros de diseño y reales, etiquetas pendientes.
-- **Exportar**: PDF anotado (plano original + simbología + etiquetas + cuadro resumen), planilla CSV para Excel (separador `;`, coma decimal) y respaldo JSON.
-- El trabajo se **guarda automáticamente** en el navegador (por archivo PDF) y el último plano se reabre solo.
+- **Lee el plano PDF** (p. ej. exportado desde Vulcan) y detecta cada pozo a partir del texto: el **ID** (ej. `1008`) y la **profundidad de diseño** escrita justo debajo (ej. `12.0`).
+- **Detonadores por pozo**, diferenciados por color y símbolo:
+  - Simple: círculo azul, 1 detonador
+  - Doble: círculo doble naranjo, 2 detonadores
+  - Triple: triángulo rojo, 3 detonadores
+  - Editables (color, símbolo, cantidad) y se pueden agregar tipos nuevos.
+- **Por cada detonador**: etiqueta (código alfanumérico, se guarda en mayúsculas) y retardo en ms.
+- **Ficha del pozo**: profundidad de diseño y real (con diferencia), estado (normal / tapado / repasado), agua (sí/no y altura), taco, largo de columna de carga calculado, tipo de explosivo, carga en kg, malla/disparo y observaciones.
+- **Selección por área** para asignar a varios pozos el tipo, estado, malla, taco, explosivo o carga.
+- **Alertas**: etiquetas repetidas e IDs repetidos dentro de la misma malla; filtro de pozos con datos pendientes.
+- **Resumen**: pozos por tipo, detonadores, metros de diseño y reales, kg de explosivo total y por tipo, pozos con agua, tapados y repasados.
 
-## Uso
+## Exportar e imprimir
 
-Abrir `index.html` en Chrome, Edge o Firefox (requiere internet para cargar pdf.js y pdf-lib desde cdnjs).
+| Formato | Contenido |
+|---|---|
+| Informe PDF completo | Plano anotado + resumen + tabla de pozos (listo para imprimir) |
+| Plano anotado PDF | Plano original con simbología, etiquetas, retardos y marcas |
+| Informe PDF (tabla) | Resumen y detalle por pozo |
+| Informe TXT | El mismo informe en texto plano por columnas |
+| CSV por pozo | Una fila por pozo (Excel: separador `;`, coma decimal) |
+| CSV de detonadores | Una fila por detonador: malla, pozo, etiqueta y retardo |
+| Respaldo JSON | Para mover el trabajo a otro equipo (Importar respaldo) |
 
-Atajos: `1`/`2`/`3` asignan Simple/Doble/Triple al pozo seleccionado, `0` lo deja sin tipo, `→`/`←` pasan al pozo siguiente/anterior, `Enter` en *Prof. real* avanza al siguiente pozo, `Esc` limpia la selección, `V`/`A`/`N` cambian de modo.
+## Uso con y sin conexión
+
+- **Publicada en un servidor (https)**, por ejemplo GitHub Pages: al abrirla una vez con señal queda guardada en el equipo y luego abre sin internet. En el celular se puede **instalar** desde el menú del navegador ("Agregar a pantalla de inicio").
+- **Como carpeta local**: copiar la carpeta `malla-tronadura` completa (incluida `vendor/`) y abrir `index.html`. Las librerías van incluidas, por lo que no necesita internet.
+- Los datos se guardan automáticamente en el navegador del equipo, por archivo PDF; el último plano se reabre solo. Para respaldar o pasar a otro equipo usar *Respaldo JSON*.
+
+Atajos: `1`/`2`/`3` asignan Simple/Doble/Triple, `0` deja sin tipo, `→`/`←` pozo siguiente/anterior, `Enter` avanza de etiqueta a retardo y de *Prof. real* al siguiente pozo, `Esc` limpia la selección, `V`/`A`/`N` cambian de modo.
 
 ## Notas
 
-- La detección supone el formato del plano de referencia: ID entero sobre la profundidad decimal. Si un plano es una imagen escaneada (sin texto), los pozos deben agregarse a mano.
-- Un mismo PDF puede contener dos mallas con IDs repetidos (ej. F082400_02 y F082400_03); asignar el campo *Malla / disparo* para diferenciarlos.
+- La detección supone el formato del plano de referencia: ID entero sobre la profundidad decimal. Si el plano es una imagen escaneada (sin texto), los pozos se agregan a mano.
+- Un mismo PDF puede contener dos mallas con IDs repetidos (ej. F082400_02 y F082400_03); completar *Malla / disparo* para diferenciarlas.
+- Librerías incluidas en `vendor/`: pdf.js 3.11.174 (Apache-2.0) y pdf-lib 1.17.1 (MIT).
