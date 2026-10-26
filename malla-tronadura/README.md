@@ -4,7 +4,7 @@ Aplicación web para trabajar sobre planos PDF de mallas de perforación y trona
 
 ## Qué hace
 
-- **Lee el plano PDF** y detecta cada pozo. Reconoce dos formatos:
+- **Lee el plano PDF** y detecta cada pozo. Reconoce dos formatos, incluso mezclados en el mismo plano (si un pozo trae ambos datos se guardan los dos):
   - **Malla de perforación** (p. ej. Vulcan): ID entero con la **profundidad de diseño** debajo (ej. `1008` / `12.0`).
   - **Plano de secuencia** (pozo dibujado como círculo): ID encima del círculo (también alfanumérico, ej. `D041`) y **tiempo de diseño en ms** al lado (ej. `7054`). Los pozos sin círculo legible se ubican por su ID.
 - **Detonadores por pozo**, diferenciados por color y símbolo:
@@ -17,6 +17,7 @@ Aplicación web para trabajar sobre planos PDF de mallas de perforación y trona
 - **Strings de secuencia**: una línea de color une los pozos en el orden en que se etiquetan, con flechas de sentido y N° de secuencia junto a cada pozo.
   - Modo **String** en el plano: cada toque agrega el pozo al final del string activo; tocar el último lo quita.
   - **Tramo automático**: tocar el pozo 1 y luego el 10 agrega en orden los pozos que quedan entre ambos (en línea recta, o por ID correlativo según la opción elegida). Mayús/Ctrl + toque agrega solo ese pozo. **Deshacer** (o `Retroceso`) quita el último tramo.
+  - **Quitar** pozos: en la barra String, *Quitar* + toque saca un pozo de su string y arrastrar un rectángulo saca varios (también Alt + toque, el botón *Quitar del string* de la ficha o *Quitar de los strings* con selección múltiple). Los pozos siguientes se renumeran y *Deshacer* los devuelve a su lugar.
   - Al volver al modo String después de usar otro comando, pregunta si **continuar** el mismo string o **iniciar otro**; el nuevo toma un color distinto.
   - Opcional: al cargar la etiqueta de un pozo, se agrega solo al string activo.
   - Cada string tiene nombre, color y **N° de inicio** definido por el programador (ej. S2 parte en 401); botón *Numeración continua*.

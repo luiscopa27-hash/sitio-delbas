@@ -96,6 +96,7 @@ button { cursor: pointer; }
 #stage.mode-add { cursor: crosshair; }
 #stage.mode-area { cursor: cell; }
 #stage.mode-string { cursor: pointer; }
+#stage.mode-string.remove { cursor: not-allowed; }
 #stage.dragging { cursor: grabbing; }
 #world { position: absolute; left: 0; top: 0; transform-origin: 0 0; box-shadow: 0 2px 14px rgba(0,0,0,.25); background: #fff; }
 #pdfCanvas { display: block; }
@@ -321,8 +322,12 @@ tbody tr.sel { background: color-mix(in srgb, var(--accent) 16%, var(--surface))
     </div>
     <div class="strBar" id="strBar" hidden>
       <span id="sbName"></span>
+      <div class="seg" role="group" aria-label="Acción del string">
+        <button type="button" data-strop="add" aria-pressed="true" title="Agregar pozos al string activo">Agregar</button>
+        <button type="button" data-strop="remove" aria-pressed="false" title="Sacar pozos de su string: toque o rectángulo (Alt + toque también quita)">Quitar</button>
+      </div>
       <label class="sbFill" title="Al tocar un pozo, agrega también los que quedan entre el último del string y ese pozo"><input type="checkbox" id="sbFill"> Tramo automático</label>
-      <button class="btn small" type="button" id="sbUndo" title="Quita lo agregado en el último toque (Retroceso)">Deshacer</button>
+      <button class="btn small" type="button" id="sbUndo" title="Revierte la última acción del string (Retroceso)">Deshacer</button>
       <button class="btn small" type="button" id="sbNew">Nuevo string</button>
     </div>
     <div class="modal" id="strAsk" hidden>
@@ -457,6 +462,7 @@ const S = {
   types: DEFAULT_TYPES.map(t => ({ ...t })),
   settings: normSettings(),
   strings: [],         // {id, name, color, start, holes: [uid en orden de etiquetado]}
+  strOp: 'add',        // modo String: 'add' agrega pozos, 'remove' los saca
   activeString: null,
   sel: new Set(),
   mode: 'select',
@@ -568,8 +574,8 @@ function stringClick(h, single = false) {
   S.stringAsk = false;
   const st = activeStr() || newString();
   const i = st.holes.indexOf(h.uid);
-  if (i >= 0 && i === st.holes.length - 1) { st.holes.pop(); S.lastAdd = null; toast(`Pozo ${h.id} quitado de ${st.name}.`); }
-  else if (i >= 0) toast(`El pozo ${h.id} ya está en ${st.name} (N° ${st.start + i}).`);
+  if (i >= 0 && i === st.holes.length - 1) { removeHolesFromStrings([h]); toast(`Pozo ${h.id} quitado de ${st.name}.`); }
+  else if (i >= 0) toast(`El pozo ${h.id} ya está en ${st.name} (N° ${st.start + i}). Para sacarlo usa «Quitar».`);
   else {
     const lastUid = st.holes[st.holes.length - 1]; const last = lastUid !== undefined ? S.holes.find(x => x.uid === lastUid) : null;
     const run = !single && S.settings.stringFill && last && last.page === h.page ? holesBetween(last, h) : [];
@@ -579,21 +585,57 @@ function stringClick(h, single = false) {
       const cur = stringOf(x.uid); if (cur) { cur.holes = cur.holes.filter(u => u !== x.uid); moved++; }
       st.holes.push(x.uid); added.push(x.uid);
     }
-    S.lastAdd = { sid: st.id, uids: added };
+    S.lastAdd = { kind: 'add', sid: st.id, uids: added };
     const n1 = st.start + st.holes.length - added.length, n2 = st.start + st.holes.length - 1;
     toast((added.length > 1 ? `${added.length} pozos agregados a ${st.name} (N° ${n1}–${n2})` : `Pozo ${h.id} → ${st.name} N° ${n2}`) + (moved ? ` · ${moved} movido(s) desde otro string` : ''));
     if (st.holes.length > S.settings.stringMax) toast(`${st.name} supera el máximo de ${S.settings.stringMax} pozos.`, 4000);
   }
   S.sel.clear(); S.sel.add(h.uid); S.confirm = null; save(); showTab('pozo'); renderAll(); focusFirstEmpty();
 }
-/** Deshace el último toque en modo String (el pozo o el tramo completo agregado). */
+/**
+ * Saca pozos de sus strings (uno o varios, de cualquier string). Los pozos que siguen se renumeran.
+ * Guarda la posición de cada uno para poder deshacer.
+ */
+function removeHolesFromStrings(list) {
+  const items = [];
+  for (const h of list) for (const st of S.strings) { const i = st.holes.indexOf(h.uid); if (i >= 0) items.push({ sid: st.id, uid: h.uid, idx: i }); }
+  if (!items.length) return 0;
+  removeFromStrings(items.map(x => x.uid));
+  S.lastAdd = { kind: 'remove', items };
+  return items.length;
+}
+/** Deshace la última acción de string: un tramo agregado o pozos quitados. */
 function undoStringAdd() {
-  const la = S.lastAdd; const st = la && S.strings.find(x => x.id === la.sid);
+  const la = S.lastAdd;
+  if (la && la.kind === 'remove') {
+    const by = new Map(); la.items.forEach(it => { if (!by.has(it.sid)) by.set(it.sid, []); by.get(it.sid).push(it); });
+    for (const [sid, its] of by) {
+      const st = S.strings.find(x => x.id === sid); if (!st) continue;
+      its.sort((p, q) => p.idx - q.idx).forEach(it => { if (!stringOf(it.uid)) st.holes.splice(Math.min(it.idx, st.holes.length), 0, it.uid); });
+    }
+    S.lastAdd = null; save(); renderAll(); toast(`${la.items.length === 1 ? 'Se devolvió 1 pozo' : `Se devolvieron ${la.items.length} pozos`} a su string.`); return;
+  }
+  const st = la && S.strings.find(x => x.id === la.sid);
   if (st && la.uids.length && la.uids.every(u => st.holes.includes(u))) {
     st.holes = st.holes.filter(u => !la.uids.includes(u)); S.lastAdd = null; save(); renderAll();
     toast(`${la.uids.length === 1 ? 'Se quitó 1 pozo' : `Se quitaron ${la.uids.length} pozos`} de ${st.name}.`); return;
   }
-  const a = activeStr(); if (a && a.holes.length) { const u = a.holes.pop(); const h = S.holes.find(x => x.uid === u); S.lastAdd = null; save(); renderAll(); toast(`Pozo ${h?.id ?? ''} quitado de ${a.name}.`); }
+  const a = activeStr(); if (a && a.holes.length) { const h = S.holes.find(x => x.uid === a.holes[a.holes.length - 1]); removeHolesFromStrings([h]); save(); renderAll(); toast(`Pozo ${h?.id ?? ''} quitado de ${a.name}.`); }
+}
+/** Modo String › Quitar: un toque saca el pozo de su string. */
+function stringRemoveClick(h) {
+  const st = stringOf(h.uid);
+  if (!st) { toast(`El pozo ${h.id} no está en ningún string.`); return; }
+  const n = st.start + st.holes.indexOf(h.uid);
+  removeHolesFromStrings([h]);
+  S.sel.clear(); S.sel.add(h.uid); save(); renderAll();
+  toast(`Pozo ${h.id} (N° ${n}) quitado de ${st.name}. Los siguientes se renumeran.`);
+}
+function setStrOp(op) {
+  S.strOp = op;
+  document.querySelectorAll('[data-strop]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.strop === op)));
+  stage.className = op === 'remove' ? 'mode-string remove' : 'mode-string';
+  toast(op === 'remove' ? 'Quitar: toca un pozo o arrastra un rectángulo para sacar pozos de su string.' : 'Agregar: toca el primer pozo y luego el último del tramo.', 3500);
 }
 /** Al volver al modo String después de otro comando: ¿continuar el mismo string o iniciar otro? */
 function askString(h, single) {
@@ -823,19 +865,46 @@ function pairCircles(circles, toks, pageNo) {
   tp.sort((p, q) => p.score - q.score);
   const usedTime = new Set();
   for (const p of tp) { if (p.h.time !== undefined || usedTime.has(p.t)) continue; usedTime.add(p.t); p.h.time = +p.t.s; }
-  return holes.map(h => normHole({ uid: 0, page: pageNo, id: h.t.s, x: h.x, y: h.y, tDesign: h.time ?? null, manual: false, th: +h.t.h.toFixed(2) }));
+  // Profundidad decimal junto al círculo, si el plano la trae.
+  const depths = toks.filter(t => /^\d{1,3}[.,]\d{1,2}$/.test(t.s)); const dp = [];
+  for (const h of holes) for (const t of depths) { const d = Math.hypot((t.x + t.w / 2) - h.x, (t.y + t.h / 2) - h.y); if (d <= D * 2.4) dp.push({ h, t, d }); }
+  dp.sort((p, q) => p.d - q.d); const usedDp = new Set();
+  for (const p of dp) { if (p.h.depth !== undefined || usedDp.has(p.t)) continue; usedDp.add(p.t); p.h.depth = num(p.t.s); }
+  return holes.map(h => normHole({ uid: 0, page: pageNo, id: h.t.s, x: h.x, y: h.y, tDesign: h.time ?? null, dDesign: h.depth ?? null, manual: false, th: +h.t.h.toFixed(2) }));
 }
 
-/** Prueba ambos formatos y se queda con el que reconoce más pozos. */
+/**
+ * Corre ambos detectores y combina el resultado, así un plano (o una página) puede traer pozos de los
+ * dos formatos. Si un pozo aparece en ambos (mismo ID y posición cercana) se guarda una vez, con la
+ * profundidad de un formato y el tiempo de diseño del otro.
+ */
 async function detectPage(page, pageNo) {
   const toks = textTokens((await page.getTextContent()).items);
   const a = detectByDepth(toks, pageNo);
-  if (a.length >= 10) return a;
   let b = [];
   try { b = await detectByCircles(page, toks, pageNo); } catch (err) { console.error(err); }
-  const r = b.length > a.length ? b : a;
-  r.forEach(h => { h.uid = uidSeq++; });
-  return r;
+  const base = a.length >= b.length ? a : b, extra = base === a ? b : a;
+  const nn = (list) => median(list.map(h => { let m = Infinity; for (const o of list) if (o !== h) m = Math.min(m, Math.hypot(o.x - h.x, o.y - h.y)); return m; }).filter(Number.isFinite));
+  const tol = (nn(base) || nn(extra) || 20) * 0.5;
+  let both = 0;
+  const out = base.slice();
+  for (const h of extra) {
+    const m = base.find(o => o.id === h.id && Math.hypot(o.x - h.x, o.y - h.y) < tol * 1.6) || base.find(o => Math.hypot(o.x - h.x, o.y - h.y) < tol);
+    if (m) { if (m.dDesign === null) m.dDesign = h.dDesign; if (m.tDesign === null) m.tDesign = h.tDesign; both++; continue; }
+    out.push(h);
+  }
+  out.forEach(h => { h.uid = uidSeq++; });
+  const fmt = a.length && b.length && (out.length > base.length || both) ? 'ambos' : a.length >= b.length ? (a.length ? 'malla' : '') : 'secuencia';
+  detectInfo.push(fmt);
+  return out;
+}
+let detectInfo = [];
+function detectSummary() {
+  const f = new Set(detectInfo.filter(Boolean)); detectInfo = [];
+  if (f.has('ambos') || (f.has('malla') && f.has('secuencia'))) return ' (formatos malla y secuencia)';
+  if (f.has('secuencia')) return ' (formato plano de secuencia)';
+  if (f.has('malla')) return ' (formato malla de perforación)';
+  return '';
 }
 
 async function openPdf(bytes, name, { demo = false, restore = null } = {}) {
@@ -865,7 +934,7 @@ async function openPdf(bytes, name, { demo = false, restore = null } = {}) {
     fit();
     if (!demo) { idbPut({ name, bytes }); save(); }
     const n = S.holes.length;
-    if (!stored) toast(n ? `${n} pozos detectados en el plano.` : 'No se detectaron pozos. Usa «Agregar pozo» para marcarlos a mano.', 4000);
+    if (!stored) toast(n ? `${n} pozos detectados${detectSummary()}.` : 'No se detectaron pozos. Usa «Agregar pozo» para marcarlos a mano.', 4500);
     else toast(`Datos guardados recuperados (${n} pozos).`);
     return true;
   } catch (err) {
@@ -1048,7 +1117,7 @@ stage.addEventListener('pointerdown', (e) => {
     gest = { kind: 'pinch', d: Math.hypot(a.x - b.x, a.y - b.y), cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2 };
     $('selRect').hidden = true; return;
   }
-  const area = S.mode === 'area' || e.shiftKey;
+  const area = S.mode === 'area' || e.shiftKey || (S.mode === 'string' && S.strOp === 'remove');
   gest = { kind: area ? 'area' : 'pan', sx: p.x, sy: p.y, tx: S.tx, ty: S.ty, moved: false, add: e.ctrlKey || e.metaKey || e.shiftKey };
 });
 stage.addEventListener('pointermove', (e) => {
@@ -1078,6 +1147,12 @@ function endPtr(e) {
   if (g.kind === 'area' && g.moved) {
     $('selRect').hidden = true;
     const a = worldPt(Math.min(p.x, g.sx), Math.min(p.y, g.sy)), b = worldPt(Math.max(p.x, g.sx), Math.max(p.y, g.sy));
+    if (S.mode === 'string' && S.strOp === 'remove') {
+      const inside = pageHoles().filter(h => { const q = toScreen(h); return q.x >= a.x && q.x <= b.x && q.y >= a.y && q.y <= b.y; });
+      const n = removeHolesFromStrings(inside); save(); renderAll();
+      toast(n ? `${n} pozo(s) sacados de sus strings. «Deshacer» los devuelve.` : 'No había pozos de strings en esa área.');
+      return;
+    }
     if (!g.add) S.sel.clear();
     for (const h of pageHoles()) { const q = toScreen(h); if (q.x >= a.x && q.x <= b.x && q.y >= a.y && q.y <= b.y) S.sel.add(h.uid); }
     showTab('pozo'); renderAll();
@@ -1087,7 +1162,13 @@ function endPtr(e) {
   if (g.moved) return;
   const w = worldPt(p.x, p.y);
   if (S.mode === 'add') { addHoleAt(w.x, w.y); return; }
-  if (S.mode === 'string') { const hs = hitHole(w.x, w.y); if (hs) stringClick(hs, e.shiftKey || e.ctrlKey || e.metaKey); else toast('Toca un pozo para agregarlo al string activo.'); return; }
+  if (S.mode === 'string') {
+    const hs = hitHole(w.x, w.y);
+    if (!hs) toast(S.strOp === 'remove' ? 'Toca un pozo para sacarlo de su string.' : 'Toca un pozo para agregarlo al string activo.');
+    else if (S.strOp === 'remove' || e.altKey) stringRemoveClick(hs);
+    else stringClick(hs, e.shiftKey || e.ctrlKey || e.metaKey);
+    return;
+  }
   const h = hitHole(w.x, w.y);
   if (h) {
     if (e.ctrlKey || e.metaKey || e.shiftKey) { S.sel.has(h.uid) ? S.sel.delete(h.uid) : S.sel.add(h.uid); }
@@ -1115,10 +1196,12 @@ function setMode(m) {
   renderStrBar();
   document.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === m)));
   stage.className = m === 'select' ? '' : 'mode-' + m;
+  if (m === 'string' && S.strOp === 'remove') stage.className += ' remove';
 }
 document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => setMode(b.dataset.mode));
 $('sbFill').onchange = (e) => { S.settings.stringFill = e.target.checked; save(); renderStrings(); };
 $('sbUndo').onclick = undoStringAdd;
+document.querySelectorAll('[data-strop]').forEach(b => b.onclick = () => setStrOp(b.dataset.strop));
 $('sbNew').onclick = () => { const st = newString(); if (S.settings.continuous) { const prev = S.strings[S.strings.length - 2]; if (prev) st.start = prev.start + prev.holes.length; } S.stringAsk = false; save(); renderAll(); toast(`${st.name} creado y activo. Toca el primer pozo.`); };
 
 function addHoleAt(wx, wy) {
@@ -1207,7 +1290,7 @@ function renderPanel() {
       for (const h of sel) { if (h.tDesign === null) continue; detsOf(h).forEach((d, i) => { while (h.dets.length <= i) h.dets.push({ tag: '', delay: null }); if (h.dets[i].delay === null) { h.dets[i].delay = h.tDesign; n++; } }); }
       save(); renderAll(); toast(n ? `${n} retardo(s) llenados con el tiempo de diseño.` : 'No había retardos vacíos en pozos con tipo asignado.');
     };
-    $('mRemStr').onclick = () => { removeFromStrings(sel.map(h => h.uid)); save(); renderAll(); toast('Pozos quitados de los strings.'); };
+    $('mRemStr').onclick = () => { const n = removeHolesFromStrings(sel); save(); renderAll(); toast(n ? `${n} pozo(s) quitados de sus strings. «Deshacer» en la barra String los devuelve.` : 'Ninguno de los pozos seleccionados está en un string.'); };
     if (confirming) { $('delYes').onclick = () => deleteHoles(sel); $('delNo').onclick = () => { S.confirm = null; renderPanel(); }; }
     else $('delMany').onclick = () => { S.confirm = 'delmany'; renderPanel(); };
     pane.querySelectorAll('tr[data-uid]').forEach(tr => tr.onclick = () => { S.sel.clear(); S.sel.add(+tr.dataset.uid); renderAll(); });
@@ -1307,14 +1390,15 @@ function stringSectionHtml(h) {
   return `<div class="grid2 strSec">
     <div class="field"><label for="f-str">String</label><select id="f-str"><option value="">Sin string</option>${S.strings.map(st =>
       `<option value="${st.id}" ${q && q.s === st ? 'selected' : ''}>${esc(st.name)} · ${st.holes.length} pozos</option>`).join('')}<option value="__new">+ Nuevo string</option></select></div>
-    <div class="field"><span class="lbl">N° de secuencia</span><div class="seqNo mono" style="color:${q ? q.s.color : 'var(--muted)'}">${q ? q.n : '—'}</div></div>
+    <div class="field"><span class="lbl">N° de secuencia</span><div class="rowBtns" style="align-items:center"><span class="seqNo mono" style="color:${q ? q.s.color : 'var(--muted)'}">${q ? q.n : '—'}</span>${q ? '<button class="btn small" type="button" id="strOut">Quitar del string</button>' : ''}</div></div>
   </div>`;
 }
 function bindStrSec(h) {
   const el = $('f-str'); if (!el) return;
+  if ($('strOut')) $('strOut').onclick = () => { const st = stringOf(h.uid); removeHolesFromStrings([h]); save(); renderAll(); toast(`Pozo ${h.id} quitado de ${st?.name ?? 'su string'}. «Deshacer» en la barra String lo devuelve.`); };
   el.onchange = () => {
     const v = el.value;
-    if (!v) { removeFromStrings([h.uid]); toast(`Pozo ${h.id} quitado de su string.`); }
+    if (!v) { removeHolesFromStrings([h]); toast(`Pozo ${h.id} quitado de su string.`); }
     else { const st = v === '__new' ? newString() : S.strings.find(x => x.id === v); S.activeString = st.id; appendToString(h, st); }
     save(); renderAll();
   };
@@ -1443,7 +1527,7 @@ function renderStrings() {
   };
   pane.innerHTML = `
     <p class="eyebrow">Strings de secuencia</p>
-    <p class="hint">Un string une los pozos en el orden en que se etiquetan. Marca el string activo y usa el modo <b>String</b> del plano: toca el primer pozo y luego el último del tramo, y los del medio se agregan en orden. Tocar el último lo quita y <b>Deshacer</b> quita el último tramo. Al volver al modo String después de otro comando, se pregunta si continuar el mismo string o iniciar otro (con otro color). El N° de secuencia parte en el número de inicio que definas.</p>
+    <p class="hint">Un string une los pozos en el orden en que se etiquetan. Marca el string activo y usa el modo <b>String</b> del plano: toca el primer pozo y luego el último del tramo, y los del medio se agregan en orden. Para sacar pozos usa <b>Quitar</b> en la barra String: toca un pozo o arrastra un rectángulo (los siguientes se renumeran). <b>Deshacer</b> revierte la última acción. Al volver al modo String después de otro comando, se pregunta si continuar el mismo string o iniciar otro (con otro color). El N° de secuencia parte en el número de inicio que definas.</p>
     <div class="strList">
     ${S.strings.map((st, i) => { const act = st.id === S.activeString; return `
       <div class="strRow ${act ? 'active' : ''}" style="--sc:${st.color}">
@@ -1567,7 +1651,7 @@ function renderSimb() {
   if ($('redetYes')) $('redetYes').onclick = async () => {
     S.confirm = null; S.holes = []; S.strings = []; S.activeString = null; S.sel.clear();
     for (let p = 1; p <= S.pageCount; p++) { S.holes.push(...await detectPage(await S.pdf.getPage(p), p)); }
-    computeRadius(); save(); renderAll(); renderSimb(); toast(`${S.holes.length} pozos detectados.`);
+    computeRadius(); save(); renderAll(); renderSimb(); toast(`${S.holes.length} pozos detectados${detectSummary()}.`);
   };
   if ($('redetNo')) $('redetNo').onclick = () => { S.confirm = null; renderSimb(); };
 }
