@@ -4,16 +4,20 @@ Aplicación web para trabajar sobre planos PDF de mallas de perforación y trona
 
 ## Qué hace
 
-- **Lee el plano PDF** (p. ej. exportado desde Vulcan) y detecta cada pozo a partir del texto: el **ID** (ej. `1008`) y la **profundidad de diseño** escrita justo debajo (ej. `12.0`).
+- **Lee el plano PDF** y detecta cada pozo. Reconoce dos formatos:
+  - **Malla de perforación** (p. ej. Vulcan): ID entero con la **profundidad de diseño** debajo (ej. `1008` / `12.0`).
+  - **Plano de secuencia** (pozo dibujado como círculo): ID encima del círculo (también alfanumérico, ej. `D041`) y **tiempo de diseño en ms** al lado (ej. `7054`). Los pozos sin círculo legible se ubican por su ID.
 - **Detonadores por pozo**, diferenciados por color y símbolo:
   - Simple: círculo azul, 1 detonador
   - Doble: círculo doble naranjo, 2 detonadores
   - Triple: triángulo rojo, 3 detonadores
   - Editables (color, símbolo, cantidad) y se pueden agregar tipos nuevos.
 - **Por cada detonador**: etiqueta (código alfanumérico, se guarda en mayúsculas) y retardo en ms.
-- **Ficha del pozo**: profundidad de diseño y real (con diferencia), estado (normal / tapado / repasado), agua (sí/no y altura), taco, largo de columna de carga calculado, tipo de explosivo, carga en kg, malla/disparo y observaciones.
+- **Ficha del pozo**: tiempo de diseño (ms, con botón para usarlo como retardo), profundidad de diseño y real (con diferencia), estado (normal / tapado / repasado), agua (sí/no y altura), taco, largo de columna de carga calculado, tipo de explosivo, carga en kg, malla/disparo y observaciones.
 - **Strings de secuencia**: una línea de color une los pozos en el orden en que se etiquetan, con flechas de sentido y N° de secuencia junto a cada pozo.
-  - Modo **String** en el plano: cada toque agrega el pozo al final del string activo; tocar el último lo quita (o `Retroceso`).
+  - Modo **String** en el plano: cada toque agrega el pozo al final del string activo; tocar el último lo quita.
+  - **Tramo automático**: tocar el pozo 1 y luego el 10 agrega en orden los pozos que quedan entre ambos (en línea recta, o por ID correlativo según la opción elegida). Mayús/Ctrl + toque agrega solo ese pozo. **Deshacer** (o `Retroceso`) quita el último tramo.
+  - Al volver al modo String después de usar otro comando, pregunta si **continuar** el mismo string o **iniciar otro**; el nuevo toma un color distinto.
   - Opcional: al cargar la etiqueta de un pozo, se agrega solo al string activo.
   - Cada string tiene nombre, color y **N° de inicio** definido por el programador (ej. S2 parte en 401); botón *Numeración continua*.
   - Sin límite fijo de strings; máximo de pozos por string configurable (400 por defecto) con aviso al superarlo. Probado con 10 strings de 400 pozos (4.000 pozos).
