@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Malla de Tronadura</title>
+<title>blaster.lcv</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <!-- pwa:start -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -65,7 +65,7 @@ button { cursor: pointer; }
 /* ---------- Barra superior ---------- */
 .bar { display: flex; align-items: center; gap: 10px; min-height: 34px; }
 .brand { display: flex; align-items: baseline; gap: 10px; min-width: 0; margin-right: auto; }
-.brand h1 { font: 700 1.25rem/1 var(--font-display); letter-spacing: .02em; margin: 0; text-transform: uppercase; white-space: nowrap; }
+.brand h1 { font: 700 1.35rem/1 var(--font-display); letter-spacing: .02em; margin: 0; white-space: nowrap; }
 .brand .file { font: 500 .78rem var(--font-data); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .net { font: 600 .72rem var(--font-body); color: var(--warn); border: 1px solid currentColor; border-radius: 999px; padding: 1px 8px; white-space: nowrap; }
 .btn {
@@ -333,7 +333,7 @@ tbody tr.sel { background: color-mix(in srgb, var(--accent) 16%, var(--surface))
 
 <header class="bar">
   <div class="brand">
-    <h1>Malla de Tronadura</h1>
+    <h1>blaster.lcv</h1>
     <span class="file" id="fileName">Sin plano</span>
     <span class="net" id="netState" hidden>Sin conexión · datos guardados en este equipo</span>
   </div>
@@ -2000,7 +2000,7 @@ document.querySelectorAll('.pop [data-exp]').forEach(b => b.onclick = async () =
     if (k === 'txt') await saveFile(baseName() + '_informe.txt', '﻿' + buildTxt());
     if (k === 'csv') await saveFile(baseName() + '_pozos.csv', '﻿' + buildCsv());
     if (k === 'csv-det') await saveFile(baseName() + '_detonadores.csv', '﻿' + buildCsvDets());
-    if (k === 'json') await saveFile(baseName() + '_respaldo.json', JSON.stringify({ app: 'malla-tronadura', version: 2, fileName: S.fileName, docKey: S.docKey, exportedAt: new Date().toISOString(), types: S.types, settings: S.settings, strings: S.strings, activeString: S.activeString, holes: S.holes }, null, 1));
+    if (k === 'json') await saveFile(baseName() + '_respaldo.json', JSON.stringify({ app: 'blaster.lcv', version: 2, fileName: S.fileName, docKey: S.docKey, exportedAt: new Date().toISOString(), types: S.types, settings: S.settings, strings: S.strings, activeString: S.activeString, holes: S.holes }, null, 1));
   } catch (err) { console.error(err); toast('No se pudo exportar: ' + (err.message || err.code || err), 5000); }
 });
 function baseName() { return (S.fileName || 'malla').replace(/\.pdf$/i, '').replace(/[^\w\-]+/g, '_'); }
@@ -2081,7 +2081,7 @@ function buildTxt() {
     if (showDets) r.dets.forEach(d => out.push(ind + 'Det. ' + d));
     if (showObs && r.obs) out.push(ind + 'Obs.: ' + r.obs);
   }
-  out.push('-'.repeat(width), 'Profundidades, diferencia, taco y largo de carga en metros. L.carga = profundidad (real o diseño) - taco. Retardos en ms.');
+  out.push('-'.repeat(width), 'Profundidades, diferencia, taco y largo de carga en metros. L.carga = profundidad (real o diseño) - taco. Retardos en ms.', `Generado con blaster.lcv · ${nowCl()}`);
   return out.join('\r\n') + '\r\n';
 }
 function csvJoin(rows) {
@@ -2212,7 +2212,7 @@ async function buildPdf({ plan = true, report = true } = {}) {
         });
       }
       page.drawText(W(`Detonadores: ${s.dets}   Explosivo: ${dec(s.kg, 1)} kg`), { x: x0 + 6, y, size: 6, font, color: rgb(0.25, 0.25, 0.25) }); y -= lh;
-      page.drawText(W(`Generado ${nowCl()}`), { x: x0 + 6, y, size: 5.5, font, color: rgb(0.4, 0.4, 0.4) });
+      page.drawText(W(`blaster.lcv · ${nowCl()}`), { x: x0 + 6, y, size: 5.5, font, color: rgb(0.4, 0.4, 0.4) });
     }
   }
   if (report) drawReport(doc, font, bold);
@@ -2270,7 +2270,7 @@ function drawReport(doc, font, bold) {
   }
   y -= 4;
   if (y > M + 14) page.drawText(W('Profundidades, diferencia, taco y largo de carga en metros. Largo de carga = profundidad (real o diseño) - taco. Retardos en ms.'), { x: M, y, size: 6.5, font, color: grey });
-  pages.forEach((p, i) => { const t = W(`Página ${i + 1} de ${pages.length}  ·  ${nowCl()}`); p.drawText(t, { x: PW - M - font.widthOfTextAtSize(t, 6.5), y: M - 12, size: 6.5, font, color: grey }); });
+  pages.forEach((p, i) => { const t = W(`blaster.lcv  ·  Página ${i + 1} de ${pages.length}  ·  ${nowCl()}`); p.drawText(t, { x: PW - M - font.widthOfTextAtSize(t, 6.5), y: M - 12, size: 6.5, font, color: grey }); });
 }
 $('fileJson').onchange = async (e) => {
   const f = e.target.files[0]; e.target.value = ''; if (!f) return;

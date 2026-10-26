@@ -1,3 +1,3 @@
 # sitio-delbas
 
-- [Malla de Tronadura](malla-tronadura/) — lectura de planos PDF de mallas de tronadura con registro de etiquetas y profundidades.
+- [blaster.lcv](blaster-lcv/) — lectura de planos PDF de mallas y de secuencia de tronadura, con registro de detonadores, strings y carguío, e informes PDF/TXT/CSV.

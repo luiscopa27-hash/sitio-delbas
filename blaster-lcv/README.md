@@ -1,4 +1,6 @@
-# Malla de Tronadura
+# blaster.lcv
+
+Aplicación para mallas de tronadura a cielo abierto.
 
 Aplicación web para trabajar sobre planos PDF de mallas de perforación y tronadura a cielo abierto. Funciona **con y sin internet** (en terreno).
 
@@ -54,7 +56,7 @@ Aplicación web para trabajar sobre planos PDF de mallas de perforación y trona
 ## Uso con y sin conexión
 
 - **Publicada en un servidor (https)**, por ejemplo GitHub Pages: al abrirla una vez con señal queda guardada en el equipo y luego abre sin internet. En el celular se puede **instalar** desde el menú del navegador ("Agregar a pantalla de inicio").
-- **Como carpeta local**: copiar la carpeta `malla-tronadura` completa (incluida `vendor/`) y abrir `index.html`. Las librerías van incluidas, por lo que no necesita internet.
+- **Como carpeta local**: copiar la carpeta `blaster-lcv` completa (incluida `vendor/`) y abrir `index.html`. Las librerías van incluidas, por lo que no necesita internet.
 - Los datos se guardan automáticamente en el navegador del equipo, por archivo PDF; el último plano se reabre solo. Para respaldar o pasar a otro equipo usar *Respaldo JSON*.
 
 Atajos: `1`/`2`/`3` asignan Simple/Doble/Triple, `0` deja sin tipo, `→`/`←` pozo siguiente/anterior, `Enter` avanza de etiqueta a retardo y de *Prof. real* al siguiente pozo, `Esc` limpia la selección, `V`/`A`/`S`/`N` cambian de modo (Seleccionar, Área, String, Agregar pozo).

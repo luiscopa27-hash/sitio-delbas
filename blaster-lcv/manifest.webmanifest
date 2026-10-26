@@ -1,6 +1,6 @@
 {
-  "name": "Malla de Tronadura",
-  "short_name": "Malla",
+  "name": "blaster.lcv",
+  "short_name": "blaster.lcv",
   "description": "Registro de detonadores, retardos y carguío sobre planos PDF de mallas de tronadura.",
   "lang": "es-CL",
   "start_url": "./",
