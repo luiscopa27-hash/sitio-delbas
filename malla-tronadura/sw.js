@@ -1,5 +1,5 @@
 // Service worker: guarda la app y sus librerías para usarla sin conexión en terreno.
-const CACHE = 'malla-tronadura-v5';
+const CACHE = 'malla-tronadura-v6';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon.svg',
   'vendor/pdf.min.js', 'vendor/pdf.worker.min.js', 'vendor/pdf-lib.min.js'];
 

@@ -28,6 +28,16 @@ Aplicación web para trabajar sobre planos PDF de mallas de perforación y trona
 - **Alertas**: etiquetas repetidas e IDs repetidos dentro de la misma malla; filtro de pozos con datos pendientes.
 - **Resumen**: pozos por tipo, detonadores, metros de diseño y reales, kg de explosivo total y por tipo, pozos con agua, tapados y repasados.
 
+## Interfaz para tablet y teléfono
+
+- El **plano ocupa toda la pantalla**. Los comandos van en una **barra vertical a un costado**, con botones grandes para el dedo.
+- La barra se configura con el botón **Barra**: lado (izquierda o derecha), tamaño (normal o grande), mostrar u ocultar nombres y elegir qué comandos aparecen. La configuración queda guardada en cada equipo.
+- Abajo hay una **barra desplegable** con el resumen del pozo tocado (o de la malla). Al tocarla se abre el **panel completo** (ficha, listado, strings y vista):
+  - En tablet sale al costado y se puede **fijar** (el plano se achica para dejarlo a la vista).
+  - En teléfono sale desde abajo; la manija lo agranda a pantalla completa.
+  - La posición se puede forzar (automática, lateral o inferior) y se puede elegir si se abre solo al tocar un pozo.
+- **Imprimir**: comando propio en la barra. Imprime el informe completo, el plano anotado o la tabla de pozos con el diálogo de impresión del equipo, que también permite **«Guardar como PDF»**. Funciona en computador, tablet y teléfono.
+
 ## Exportar e imprimir
 
 | Formato | Contenido |
