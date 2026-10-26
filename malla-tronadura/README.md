@@ -30,7 +30,8 @@ Aplicación web para trabajar sobre planos PDF de mallas de perforación y trona
 
 ## Interfaz para tablet y teléfono
 
-- El **plano ocupa toda la pantalla**. Los comandos van en una **barra vertical a un costado**, con botones grandes para el dedo.
+- El **plano ocupa toda la pantalla** y se ve **nítido con cualquier zoom**: al terminar de mover o ampliar, la zona visible se vuelve a dibujar desde el PDF a la resolución exacta de la pantalla del equipo.
+- Los comandos van en una **barra vertical a un costado**, con botones grandes para el dedo.
 - La barra se configura con el botón **Barra**: lado (izquierda o derecha), tamaño (normal o grande), mostrar u ocultar nombres y elegir qué comandos aparecen. La configuración queda guardada en cada equipo.
 - Abajo hay una **barra desplegable** con el resumen del pozo tocado (o de la malla). Al tocarla se abre el **panel completo** (ficha, listado, strings y vista):
   - En tablet sale al costado y se puede **fijar** (el plano se achica para dejarlo a la vista).
