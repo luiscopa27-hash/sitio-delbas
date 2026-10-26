@@ -141,6 +141,19 @@ button { cursor: pointer; }
   background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; box-shadow: 0 1px 4px rgba(0,0,0,.12); font-size: .88rem;
 }
 .strBar .sbFill { display: inline-flex; align-items: center; gap: 5px; font-weight: 500; min-height: 36px; }
+.repBar .rbTitle { font: 700 .95rem var(--font-display); text-transform: uppercase; letter-spacing: .04em; }
+.progChips { display: flex; flex-wrap: wrap; gap: 6px; }
+.progChips button { border: 2px solid var(--line); background: var(--surface); border-radius: 999px; padding: 4px 12px 4px 6px; min-height: 36px; display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: .86rem; }
+.progChips button[aria-pressed="true"] { border-color: var(--pc); background: color-mix(in srgb, var(--pc) 18%, var(--surface)); }
+.progChips .dot { width: 16px; height: 16px; border-radius: 50%; background: var(--pc); flex: none; }
+.progRow { display: grid; grid-template-columns: 22px 40px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 8px; border: 1px solid var(--line); border-radius: var(--radius); }
+.progRow.active { border-color: var(--pc); background: color-mix(in srgb, var(--pc) 10%, var(--surface)); }
+.progRow .cfg { grid-column: 2 / 5; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.progRow input[type=text] { border: 1px solid var(--line); background: var(--surface-2); border-radius: var(--radius); padding: 5px 8px; min-width: 0; width: 100%; font-weight: 600; }
+.progRow input[type=color] { width: 40px; height: 32px; border: 1px solid var(--line); border-radius: var(--radius); padding: 1px; background: var(--surface); }
+.palette { display: flex; flex-wrap: wrap; gap: 6px; }
+.palette button { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--line); padding: 0; }
+.palette button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--ink); }
 .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 6px; }
 .modal { position: absolute; inset: 0; z-index: 20; display: grid; place-items: center; background: color-mix(in srgb, var(--ink) 35%, transparent); padding: 16px; }
 .dlg { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; width: min(420px, 100%); box-shadow: 0 12px 40px rgba(0,0,0,.3); display: flex; flex-direction: column; gap: 12px; }
@@ -151,7 +164,7 @@ button { cursor: pointer; }
 .askStartRow input { width: 90px; border: 1px solid var(--line); background: var(--surface-2); border-radius: var(--radius); padding: 5px 8px; }
 
 .legend {
-  position: absolute; right: 10px; top: 10px; z-index: 5; background: color-mix(in srgb, var(--surface) 94%, transparent);
+  position: absolute; right: 10px; bottom: 72px; z-index: 5; max-height: calc(100% - 150px); overflow: auto; background: color-mix(in srgb, var(--surface) 94%, transparent);
   border: 1px solid var(--line); border-radius: 8px; font-size: .82rem; box-shadow: 0 1px 4px rgba(0,0,0,.12); max-width: 60%;
 }
 .app[data-rail="right"] .legend { right: auto; left: 10px; }
@@ -179,7 +192,7 @@ button { cursor: pointer; }
 .peek svg { width: 22px; height: 22px; flex: none; }
 
 .banner {
-  position: absolute; left: 10px; bottom: 72px; z-index: 6; max-width: min(46ch, calc(100% - 20px));
+  position: absolute; left: 10px; top: 10px; z-index: 6; max-width: min(46ch, calc(100% - 20px));
   background: var(--ink); color: var(--bg); border-radius: var(--radius); padding: 6px 12px; font-size: .85rem;
 }
 .drop {
@@ -219,7 +232,7 @@ button { cursor: pointer; }
 /* ---------- Panel ---------- */
 .tabs { display: flex; flex: 1; min-width: 0; }
 .tabs button {
-  flex: 1; border: 0; background: none; padding: 12px 4px 10px; min-height: 46px; font: 600 .98rem var(--font-display); text-transform: uppercase; letter-spacing: .04em;
+  flex: 1; border: 0; background: none; padding: 12px 2px 10px; min-height: 46px; font: 600 .92rem var(--font-display); text-transform: uppercase; letter-spacing: .03em;
   color: var(--muted); border-bottom: 3px solid transparent;
 }
 .tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
@@ -306,7 +319,7 @@ tbody tr.sel { background: color-mix(in srgb, var(--accent) 16%, var(--surface))
 .toast {
   position: fixed; left: 50%; transform: translateX(-50%); top: calc(52px + env(safe-area-inset-top, 0px)); z-index: 50; text-align: center;
   background: var(--ink); color: var(--bg); padding: 8px 14px; border-radius: var(--radius); font-size: .9rem; max-width: calc(100% - 32px);
-  box-shadow: 0 6px 20px rgba(0,0,0,.25);
+  box-shadow: 0 6px 20px rgba(0,0,0,.25); pointer-events: none;
 }
 
 @media (max-width: 600px) {
@@ -393,6 +406,12 @@ tbody tr.sel { background: color-mix(in srgb, var(--accent) 16%, var(--surface))
       <button class="btn small" type="button" id="sbUndo" title="Revierte la última acción del string (Retroceso)">Deshacer</button>
       <button class="btn small" type="button" id="sbNew">Nuevo string</button>
     </div>
+    <div class="strBar repBar" id="repBar" hidden>
+      <b class="rbTitle">Reparto</b>
+      <div class="progChips" id="progChips" role="group" aria-label="Programador activo"></div>
+      <button class="btn small" type="button" id="rbUndo" title="Revierte la última marca">Deshacer</button>
+      <button class="btn small" type="button" id="rbExit" title="Volver a la vista normal">Salir</button>
+    </div>
     <div class="modal" id="strAsk" hidden>
       <div class="dlg" role="dialog" aria-modal="true" aria-labelledby="askTitle">
         <h2 id="askTitle">¿Continuar el string o iniciar otro?</h2>
@@ -422,6 +441,7 @@ tbody tr.sel { background: color-mix(in srgb, var(--accent) 16%, var(--surface))
         <div class="tabs" role="tablist">
           <button type="button" role="tab" aria-selected="true" data-tab="pozo">Pozo</button>
           <button type="button" role="tab" aria-selected="false" data-tab="lista">Listado</button>
+          <button type="button" role="tab" aria-selected="false" data-tab="rep">Reparto</button>
           <button type="button" role="tab" aria-selected="false" data-tab="str">Strings</button>
           <button type="button" role="tab" aria-selected="false" data-tab="simb">Vista</button>
         </div>
@@ -442,6 +462,7 @@ tbody tr.sel { background: color-mix(in srgb, var(--accent) 16%, var(--surface))
         <tbody id="tblBody"></tbody>
       </table></div>
     </div>
+    <div class="tabpane" id="pane-rep" hidden></div>
     <div class="tabpane" id="pane-str" hidden></div>
     <div class="tabpane" id="pane-simb" hidden></div>
   </aside>
@@ -454,6 +475,7 @@ tbody tr.sel { background: color-mix(in srgb, var(--accent) 16%, var(--surface))
     <button type="button" data-exp="pdf-full">Informe PDF completo<small>Plano anotado + resumen + tabla de pozos</small></button>
     <button type="button" data-exp="pdf-plan">Plano anotado PDF<small>Plano original con simbología, strings y etiquetas</small></button>
     <button type="button" data-exp="pdf-report">Informe PDF (solo tabla)<small>Resumen y detalle por pozo</small></button>
+    <button type="button" data-exp="pdf-rep">Plano de reparto PDF<small>Pozos con detonador por programador</small></button>
     <span class="menu-sec">Texto y planillas</span>
     <button type="button" data-exp="txt">Informe TXT<small>Texto plano en columnas</small></button>
     <button type="button" data-exp="csv">Planilla CSV por pozo<small>Excel: separador ; y coma decimal</small></button>
@@ -468,6 +490,7 @@ tbody tr.sel { background: color-mix(in srgb, var(--accent) 16%, var(--surface))
     <button type="button" data-print="full">Informe completo<small>Plano anotado + resumen + tabla de pozos</small></button>
     <button type="button" data-print="plan">Plano anotado<small>Solo el plano con simbología y strings</small></button>
     <button type="button" data-print="report">Tabla de pozos<small>Resumen y detalle por pozo</small></button>
+    <button type="button" data-print="rep">Plano de reparto<small>Pozos con detonador por programador</small></button>
     <span class="menu-sec">Archivo PDF</span>
     <button type="button" data-exp="pdf-full">Guardar informe completo en PDF<small>Para enviarlo o imprimirlo después</small></button>
   </div>
@@ -557,12 +580,13 @@ const REPORT_COLS = [
   { k: 'kg', n: 'kg', w: 30, tw: 7, right: 1 },
   { k: 'water', n: 'Agua', w: 38, tw: 9 },
   { k: 'state', n: 'Estado', w: 42, tw: 9 },
+  { k: 'prog', n: 'Programador', w: 56, tw: 14 },
   { k: 'obs', n: 'Observaciones', w: 0 },
 ];
 const DEFAULT_SETTINGS = {
   label: { seq: true, tag: true, delay: true, dReal: false, stem: false, charge: false, expl: false },
   showMarks: true, showUnassigned: true, showStrings: true, autoString: true, stringMax: 400,
-  stringFill: true, stringFillBy: 'line',
+  stringFill: true, stringFillBy: 'line', stringPrime: true, showDrops: false,
   reportCols: Object.fromEntries(REPORT_COLS.map(c => [c.k, true])), reportSort: 'id',
 };
 function normSettings(x = {}) {
@@ -583,6 +607,10 @@ const S = {
   settings: normSettings(),
   strings: [],         // {id, name, color, start, holes: [uid en orden de etiquetado]}
   strOp: 'add',        // modo String: 'add' agrega pozos, 'remove' los saca
+  progs: [],           // programadores del reparto: {id, name, color}
+  activeProg: null,
+  repMode: false,      // vista de reparto (pestaña Reparto abierta)
+  lastRep: null,       // última acción de reparto, para deshacer
   activeString: null,
   sel: new Set(),
   mode: 'select',
@@ -613,6 +641,7 @@ function normHole(h) {
   for (const k of ['dDesign', 'dReal', 'stem', 'charge', 'waterLvl', 'tDesign']) if (h[k] === undefined) h[k] = null;
   for (const k of ['group', 'expl', 'obs', 'state', 'type']) if (h[k] === undefined) h[k] = '';
   h.water = !!h.water;
+  if (h.drop === undefined) h.drop = null; // reparto: {p: programador, n: detonadores o null = según tipo, at: fecha}
   return h;
 }
 /** Detonadores vigentes según el tipo del pozo (los sobrantes se conservan pero no cuentan). */
@@ -654,7 +683,7 @@ function appendToString(h, st) {
   const cur = stringOf(h.uid);
   if (cur === st) return false;
   if (cur) cur.holes = cur.holes.filter(u => u !== h.uid);
-  st.holes.push(h.uid);
+  st.holes.push(h.uid); primeSimple(h);
   const max = S.settings.stringMax;
   if (st.holes.length > max) toast(`${st.name} supera el máximo de ${max} pozos.`, 4000);
   else toast(`Pozo ${h.id} → ${st.name} N° ${st.start + st.holes.length - 1}${cur ? ` (movido desde ${cur.name})` : ''}`);
@@ -699,13 +728,14 @@ function stringClick(h, single = false) {
   else {
     const lastUid = st.holes[st.holes.length - 1]; const last = lastUid !== undefined ? S.holes.find(x => x.uid === lastUid) : null;
     const run = !single && S.settings.stringFill && last && last.page === h.page ? holesBetween(last, h) : [];
-    const added = []; let moved = 0;
+    const added = [], primed = []; let moved = 0;
     for (const x of [...run, h]) {
       if (st.holes.includes(x.uid)) continue;
       const cur = stringOf(x.uid); if (cur) { cur.holes = cur.holes.filter(u => u !== x.uid); moved++; }
       st.holes.push(x.uid); added.push(x.uid);
+      if (primeSimple(x)) primed.push(x.uid);
     }
-    S.lastAdd = { kind: 'add', sid: st.id, uids: added };
+    S.lastAdd = { kind: 'add', sid: st.id, uids: added, primed };
     const n1 = st.start + st.holes.length - added.length, n2 = st.start + st.holes.length - 1;
     toast((added.length > 1 ? `${added.length} pozos agregados a ${st.name} (N° ${n1}–${n2})` : `Pozo ${h.id} → ${st.name} N° ${n2}`) + (moved ? ` · ${moved} movido(s) desde otro string` : ''));
     if (st.holes.length > S.settings.stringMax) toast(`${st.name} supera el máximo de ${S.settings.stringMax} pozos.`, 4000);
@@ -737,7 +767,9 @@ function undoStringAdd() {
   }
   const st = la && S.strings.find(x => x.id === la.sid);
   if (st && la.uids.length && la.uids.every(u => st.holes.includes(u))) {
-    st.holes = st.holes.filter(u => !la.uids.includes(u)); S.lastAdd = null; save(); renderAll();
+    st.holes = st.holes.filter(u => !la.uids.includes(u));
+    const sk = simpleType()?.key; for (const u of la.primed || []) { const x = S.holes.find(o => o.uid === u); if (x && x.type === sk) x.type = ''; }
+    S.lastAdd = null; save(); renderAll();
     toast(`${la.uids.length === 1 ? 'Se quitó 1 pozo' : `Se quitaron ${la.uids.length} pozos`} de ${st.name}.`); return;
   }
   const a = activeStr(); if (a && a.holes.length) { const h = S.holes.find(x => x.uid === a.holes[a.holes.length - 1]); removeHolesFromStrings([h]); save(); renderAll(); toast(`Pozo ${h?.id ?? ''} quitado de ${a.name}.`); }
@@ -776,6 +808,70 @@ function askString(h, single) {
   };
   $('askCancel').onclick = close;
 }
+function renderRepBar() {
+  const bar = $('repBar'); bar.hidden = !S.repMode || !S.vp; if (bar.hidden) return;
+  const rs = repStats();
+  $('progChips').innerHTML = S.progs.map(pr => { const v = rs.by.get(pr.id); return `<button type="button" data-prog="${pr.id}" aria-pressed="${pr.id === S.activeProg}" style="--pc:${pr.color}"><span class="dot"></span>${esc(pr.name)} <span class="mono">${v ? v.pozos : 0}</span></button>`; }).join('')
+    + `<button type="button" id="progAddChip" title="Agregar programador">+ Programador</button>`;
+  $('progChips').querySelectorAll('[data-prog]').forEach(b => b.onclick = () => { S.activeProg = b.dataset.prog; save(); renderRepBar(); renderRep(); renderPeek(); });
+  $('progAddChip').onclick = () => { const pr = newProg(); save(); renderAll(); toast(`${pr.name} agregado y activo. Cambia su nombre en la pestaña Reparto.`); };
+}
+$('rbUndo').onclick = undoRep;
+$('rbExit').onclick = () => showTab('pozo');
+
+function renderRep() {
+  const pane = $('pane-rep'); if (pane.hidden) return;
+  const rs = repStats();
+  const row = (pr, i) => { const v = rs.by.get(pr.id) || { pozos: 0, dets: 0 }; const act = pr.id === S.activeProg; return `
+    <div class="progRow ${act ? 'active' : ''}" style="--pc:${pr.color}">
+      <label title="Programador activo"><input type="radio" name="actProg" value="${pr.id}" ${act ? 'checked' : ''}><span class="sr">Activo ${esc(pr.name)}</span></label>
+      <input type="color" id="pc-${i}" value="${pr.color}" aria-label="Color de ${esc(pr.name)}">
+      <input type="text" id="pn-${i}" value="${esc(pr.name)}" aria-label="Nombre del programador">
+      <span class="mono" title="Pozos / detonadores">${v.pozos} · ${v.dets} det.</span>
+      <div class="cfg palette">${PROG_COLORS.map(c => `<button type="button" data-pal="${i}" data-c="${c}" style="background:${c}" aria-pressed="${c === pr.color}" aria-label="Color ${c}"></button>`).join('')}</div>
+      <div class="cfg">${S.confirm === 'delprog:' + pr.id
+        ? `<span class="hint">¿Eliminar a ${esc(pr.name)} y sus ${v.pozos} marcas?</span><button class="btn small danger solid" type="button" data-pdel-yes="${i}">Eliminar</button><button class="btn small" type="button" data-pdel-no>Cancelar</button>`
+        : `<button class="btn small danger" type="button" data-pdel="${i}">Eliminar</button>`}</div>
+    </div>`; };
+  pane.innerHTML = `
+    <p class="eyebrow">Reparto de detonadores a piso</p>
+    <p class="hint">Mientras esta pestaña está abierta, el plano muestra los pozos donde ya se dejó el detonador, con el color de quien lo dejó. Elige el programador y toca cada pozo (otro toque lo desmarca). Con <b>Área</b> marcas varios de una vez.</p>
+    <div class="stats">
+      <div class="stat"><div class="v">${rs.pozos} / ${S.holes.length}</div><div class="k">Pozos con detonador</div></div>
+      <div class="stat"><div class="v">${rs.pend}</div><div class="k">Pozos pendientes</div></div>
+      <div class="stat"><div class="v">${rs.dets}</div><div class="k">Detonadores repartidos (según tipo)</div></div>
+      <div class="stat"><div class="v">${S.progs.length}</div><div class="k">Programadores</div></div>
+    </div>
+    <p class="eyebrow">Programadores</p>
+    <div class="strList">${S.progs.map(row).join('') || '<p class="hint">Aún no hay programadores. Agrega uno o toca un pozo y se crea solo.</p>'}</div>
+    <div class="rowBtns"><button class="btn small primary" type="button" id="progAdd">+ Agregar programador</button></div>
+    <div class="sectionGap"></div>
+    <p class="eyebrow">Opciones</p>
+    <label class="check"><input type="checkbox" id="optDrops" ${S.settings.showDrops ? 'checked' : ''}> Mostrar también en la vista normal una marca con el color del programador</label>
+    <div class="rowBtns" style="margin-top:8px">${S.confirm === 'clrRep'
+      ? `<span class="hint">¿Borrar todas las marcas de reparto?</span><button class="btn small danger solid" type="button" id="clrRepYes">Borrar</button><button class="btn small" type="button" id="clrRepNo">Cancelar</button>`
+      : `<button class="btn small danger" type="button" id="clrRep">Borrar todo el reparto</button>`}</div>`;
+  const done = () => { save(); renderAll(); };
+  pane.querySelectorAll('[name=actProg]').forEach(r => r.onchange = () => { S.activeProg = r.value; done(); });
+  S.progs.forEach((pr, i) => {
+    $('pc-' + i).oninput = (e) => { pr.color = e.target.value; save(); renderOverlay(); renderRepBar(); };
+    $('pc-' + i).onchange = done;
+    $('pn-' + i).onchange = (e) => { pr.name = e.target.value.trim() || pr.name; done(); };
+  });
+  pane.querySelectorAll('[data-pal]').forEach(b => b.onclick = () => { S.progs[+b.dataset.pal].color = b.dataset.c; done(); });
+  pane.querySelectorAll('[data-pdel]').forEach(b => b.onclick = () => { S.confirm = 'delprog:' + S.progs[+b.dataset.pdel].id; renderRep(); });
+  pane.querySelectorAll('[data-pdel-no]').forEach(b => b.onclick = () => { S.confirm = null; renderRep(); });
+  pane.querySelectorAll('[data-pdel-yes]').forEach(b => b.onclick = () => {
+    const pr = S.progs[+b.dataset.pdelYes]; S.holes.forEach(h => { if (h.drop?.p === pr.id) h.drop = null; });
+    S.progs.splice(+b.dataset.pdelYes, 1); if (S.activeProg === pr.id) S.activeProg = S.progs[0]?.id ?? null; S.confirm = null; S.lastRep = null; done();
+  });
+  $('progAdd').onclick = () => { const pr = newProg(); done(); $('pn-' + (S.progs.length - 1))?.select(); toast(`${pr.name} agregado y activo.`); };
+  $('optDrops').onchange = (e) => { S.settings.showDrops = e.target.checked; save(); };
+  if ($('clrRep')) $('clrRep').onclick = () => { S.confirm = 'clrRep'; renderRep(); };
+  if ($('clrRepNo')) $('clrRepNo').onclick = () => { S.confirm = null; renderRep(); };
+  if ($('clrRepYes')) $('clrRepYes').onclick = () => { S.lastRep = S.holes.filter(h => h.drop).map(h => ({ uid: h.uid, prev: { ...h.drop } })); S.holes.forEach(h => { h.drop = null; }); S.confirm = null; done(); toast('Reparto borrado. «Deshacer» en la barra de reparto lo recupera.'); };
+}
+
 function renderStrBar() {
   const bar = $('strBar'); bar.hidden = S.mode !== 'string'; if (bar.hidden) return;
   const st = activeStr();
@@ -783,6 +879,53 @@ function renderStrBar() {
   $('sbFill').checked = S.settings.stringFill;
 }
 function stringRange(st) { return st.holes.length ? `N° ${st.start}–${st.start + st.holes.length - 1}` : 'vacío'; }
+
+// ===================== Reparto de detonadores =====================
+const PROG_COLORS = ['#0ea5e9', '#f59e0b', '#10b981', '#e11d48', '#8b5cf6', '#84cc16', '#f97316', '#14b8a6', '#d946ef', '#64748b', '#a16207', '#2563eb'];
+function loadProgs(src) {
+  S.progs = (Array.isArray(src.progs) ? src.progs : []).filter(x => x && x.id).map(x => ({ id: x.id, name: x.name || 'Programador', color: x.color || PROG_COLORS[0] }));
+  S.activeProg = S.progs.some(x => x.id === src.activeProg) ? src.activeProg : (S.progs[0]?.id ?? null);
+}
+function progOf(h) { return h.drop ? S.progs.find(x => x.id === h.drop.p) || null : null; }
+function activeProg() { return S.progs.find(x => x.id === S.activeProg) || null; }
+function newProg() {
+  let n = S.progs.length + 1; while (S.progs.some(x => x.name === 'Programador ' + n)) n++;
+  const used = new Set(S.progs.map(x => x.color.toLowerCase()));
+  const pr = { id: 'p' + Date.now().toString(36) + n, name: 'Programador ' + n, color: PROG_COLORS.find(c => !used.has(c)) || PROG_COLORS[S.progs.length % PROG_COLORS.length] };
+  S.progs.push(pr); S.activeProg = pr.id; return pr;
+}
+/** Detonadores dejados en el pozo: el número indicado, o los que pide su tipo (1 si aún no tiene tipo). */
+function dropCount(h) { return h.drop ? (h.drop.n ?? (typeOf(h)?.n || 1)) : 0; }
+function repStats() {
+  const by = new Map(); let pozos = 0, dets = 0;
+  for (const h of S.holes) if (h.drop) { pozos++; dets += dropCount(h); const k = h.drop.p; const v = by.get(k) || { pozos: 0, dets: 0 }; v.pozos++; v.dets += dropCount(h); by.set(k, v); }
+  return { by, pozos, dets, pend: S.holes.length - pozos };
+}
+/** Vista de reparto: un toque marca el pozo con el programador activo; otro toque lo desmarca. */
+function repClick(h) {
+  const pr = activeProg() || newProg(); const prev = h.drop ? { ...h.drop } : null;
+  if (h.drop && h.drop.p === pr.id) { h.drop = null; toast(`Pozo ${h.id}: se quitó la marca de ${pr.name}.`); }
+  else { const old = progOf(h); h.drop = { p: pr.id, n: null, at: new Date().toISOString() }; toast(old ? `Pozo ${h.id} reasignado de ${old.name} a ${pr.name}.` : `Pozo ${h.id}: detonador depositado · ${pr.name}.`); }
+  S.lastRep = [{ uid: h.uid, prev }];
+  S.sel.clear(); S.sel.add(h.uid); save(); renderAll();
+}
+function repArea(list) {
+  const pr = activeProg() || newProg(); const changes = [];
+  for (const h of list) { if (h.drop && h.drop.p === pr.id) continue; changes.push({ uid: h.uid, prev: h.drop ? { ...h.drop } : null }); h.drop = { p: pr.id, n: null, at: new Date().toISOString() }; }
+  S.lastRep = changes; save(); renderAll();
+  toast(changes.length ? `${changes.length} pozo(s) marcados con detonador · ${pr.name}.` : 'Todos los pozos del área ya estaban marcados por ese programador.');
+}
+function undoRep() {
+  if (!S.lastRep || !S.lastRep.length) { toast('No hay acciones de reparto para deshacer.'); return; }
+  for (const c of S.lastRep) { const h = S.holes.find(x => x.uid === c.uid); if (h) h.drop = c.prev; }
+  toast(`Se deshizo la última marca (${S.lastRep.length} pozo(s)).`); S.lastRep = null; save(); renderAll();
+}
+/** Primado simple: un pozo que entra a un string sin tipo queda como Simple. */
+function simpleType() { return S.types.find(t => t.key === 'S') || S.types.find(t => t.n === 1) || null; }
+function primeSimple(h) {
+  if (!S.settings.stringPrime || typeOf(h)) return false;
+  const t = simpleType(); if (!t) return false; h.type = t.key; return true;
+}
 
 // ===================== Persistencia local =====================
 function lsGet(k) { try { return localStorage.getItem(k); } catch { return null; } }
@@ -792,7 +935,8 @@ function save() {
   if (!S.docKey || S.demo) return;
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    lsSet(STORE_PREFIX + S.docKey, JSON.stringify({ fileName: S.fileName, holes: S.holes, types: S.types, settings: S.settings, strings: S.strings, activeString: S.activeString, savedAt: new Date().toISOString() }));
+    lsSet(STORE_PREFIX + S.docKey, JSON.stringify({ fileName: S.fileName, holes: S.holes, types: S.types, settings: S.settings, strings: S.strings, activeString: S.activeString, progs: S.progs, activeProg: S.activeProg, savedAt: new Date().toISOString() }));
+    lsSet(STORE_PREFIX + 'progs', JSON.stringify(S.progs));
     lsSet(STORE_PREFIX + 'types', JSON.stringify(S.types));
   }, 250);
 }
@@ -1040,10 +1184,10 @@ async function openPdf(bytes, name, { demo = false, restore = null } = {}) {
     if (stored && Array.isArray(stored.holes)) {
       S.holes = stored.holes.map(normHole); S.types = stored.types?.length ? stored.types : S.types;
       S.settings = normSettings({ ...S.settings, ...(stored.settings || {}) });
-      loadStrings(stored);
+      loadStrings(stored); loadProgs(stored);
       uidSeq = Math.max(0, ...S.holes.map(h => h.uid)) + 1;
     } else {
-      S.strings = []; S.activeString = null;
+      S.strings = []; S.activeString = null; loadProgs({ progs: safeParse(lsGet(STORE_PREFIX + 'progs')) || [] });
       if (!demo) { const gt = safeParse(lsGet(STORE_PREFIX + 'types')); if (Array.isArray(gt) && gt.length) S.types = gt; }
       S.holes = [];
       for (let p = 1; p <= pdf.numPages; p++) {
@@ -1178,8 +1322,24 @@ function stringsSvg(r) {
   }
   return o.join('');
 }
+/** Vista de reparto: pozos con detonador pintados con el color del programador; pendientes en gris. */
+function renderRepOverlay() {
+  const r = S.r, out = [];
+  for (const h of pageHoles()) {
+    const p = toScreen(h), pr = progOf(h), sel = S.sel.has(h.uid);
+    out.push(`<g transform="translate(${p.x.toFixed(2)} ${p.y.toFixed(2)})">`);
+    if (sel) out.push(`<circle r="${(r * 2).toFixed(2)}" fill="none" stroke="#0d6b61" stroke-width="${(r * .35).toFixed(2)}"/>`);
+    if (pr) {
+      out.push(`<circle r="${(r * 1.3).toFixed(2)}" fill="${pr.color}" fill-opacity=".62" stroke="${pr.color}" stroke-width="${(r * .3).toFixed(2)}"/>`);
+      const n = dropCount(h); if (n > 1) out.push(`<text text-anchor="middle" y="${(r * .45).toFixed(2)}" font-size="${(r * 1.25).toFixed(2)}" font-weight="700" fill="#fff" stroke="none">${n}</text>`);
+    } else out.push(`<circle r="${(r * .95).toFixed(2)}" fill="none" stroke="#7a8582" stroke-width="${(r * .16).toFixed(2)}" stroke-dasharray="${(r * .35).toFixed(2)} ${(r * .3).toFixed(2)}"/>`);
+    out.push('</g>');
+  }
+  $('overlay').innerHTML = out.join('');
+}
 function renderOverlay() {
   if (!S.vp) return;
+  if (S.repMode) { renderRepOverlay(); return; }
   const r = S.r; const out = [];
   const tagCount = tagCounts(); const seq = seqIndex();
   if (S.settings.showStrings) out.push(stringsSvg(r));
@@ -1199,6 +1359,7 @@ function renderOverlay() {
     }
     if (q && S.settings.label.seq) out.push(`<text x="${(-r * 2.15).toFixed(2)}" y="${(r * .42).toFixed(2)}" text-anchor="end" font-size="${(r * 1.2).toFixed(2)}" font-weight="700" fill="${q.s.color}" stroke-width="${(r * .32).toFixed(2)}">${q.n}</text>`);
     if (S.settings.showMarks) out.push(marksSvg(h, r));
+    if (S.settings.showDrops && h.drop) { const pr = progOf(h); if (pr) out.push(`<rect x="${(r * .95).toFixed(2)}" y="${(-r * 1.75).toFixed(2)}" width="${(r * .8).toFixed(2)}" height="${(r * .8).toFixed(2)}" rx="${(r * .15).toFixed(2)}" fill="${pr.color}"/>`); }
     out.push('</g>');
   }
   $('overlay').innerHTML = out.join('');
@@ -1224,6 +1385,14 @@ function dupIds() {
 }
 
 function renderLegend() {
+  if (S.repMode) {
+    const rs = repStats();
+    $('legendFloat').innerHTML = S.progs.map(pr => { const v = rs.by.get(pr.id) || { pozos: 0, dets: 0 }; return `<div class="row"><span class="mk" style="background:${pr.color};border-radius:50%;width:12px;height:12px"></span><span>${esc(pr.name)}</span><b>${v.pozos}</b></div>`; }).join('')
+      + `<div class="row">${symbolSvg(null, 16)}<span>Pendientes</span><b>${rs.pend}</b></div>`;
+    $('legendBox').querySelector('summary').textContent = 'Reparto';
+    return;
+  }
+  $('legendBox').querySelector('summary').textContent = 'Simbología';
   const counts = new Map(); let none = 0;
   for (const h of S.holes) { if (h.type && typeOf(h)) counts.set(h.type, (counts.get(h.type) || 0) + 1); else none++; }
   $('legendFloat').innerHTML = S.types.map(t => `<div class="row">${symbolSvg(t, 16)}<span>${esc(t.name)}</span><b>${counts.get(t.key) || 0}</b></div>`).join('')
@@ -1232,7 +1401,7 @@ function renderLegend() {
        <span class="mk" style="background:${MARK_TAPADO}"></span>Tapado <span class="mk" style="background:${MARK_REPASADO};border-radius:50%"></span>Repasado</div>` : '');
 }
 
-function renderAll() { renderOverlay(); renderLegend(); renderPanel(); renderTable(); renderStrings(); renderStrBar(); renderPeek(); }
+function renderAll() { renderOverlay(); renderLegend(); renderPanel(); renderTable(); renderStrings(); renderStrBar(); renderRepBar(); renderRep(); renderPeek(); }
 
 // ===================== Zoom y desplazamiento =====================
 function applyXf() { $('world').style.transform = `translate(${S.tx}px, ${S.ty}px) scale(${S.z})`; scheduleDetail(); }
@@ -1301,6 +1470,7 @@ function endPtr(e) {
   if (g.kind === 'area' && g.moved) {
     $('selRect').hidden = true;
     const a = worldPt(Math.min(p.x, g.sx), Math.min(p.y, g.sy)), b = worldPt(Math.max(p.x, g.sx), Math.max(p.y, g.sy));
+    if (S.repMode) { repArea(pageHoles().filter(h => { const q = toScreen(h); return q.x >= a.x && q.x <= b.x && q.y >= a.y && q.y <= b.y; })); return; }
     if (S.mode === 'string' && S.strOp === 'remove') {
       const inside = pageHoles().filter(h => { const q = toScreen(h); return q.x >= a.x && q.x <= b.x && q.y >= a.y && q.y <= b.y; });
       const n = removeHolesFromStrings(inside); save(); renderAll();
@@ -1323,6 +1493,7 @@ function endPtr(e) {
     else stringClick(hs, e.shiftKey || e.ctrlKey || e.metaKey);
     return;
   }
+  if (S.repMode) { const hr = hitHole(w.x, w.y); if (hr) repClick(hr); else toast('Toca un pozo para marcar el detonador depositado.'); return; }
   const h = hitHole(w.x, w.y);
   if (h) {
     if (e.ctrlKey || e.metaKey || e.shiftKey) { S.sel.has(h.uid) ? S.sel.delete(h.uid) : S.sel.add(h.uid); }
@@ -1349,6 +1520,7 @@ $('pagePrev').onclick = async () => { if (S.pageNum > 1) { S.pageNum--; S.sel.cl
 $('pageNext').onclick = async () => { if (S.pageNum < S.pageCount) { S.pageNum++; S.sel.clear(); await renderPage(); fit(); } };
 
 function setMode(m) {
+  if ((m === 'string' || m === 'add') && S.repMode) showTab('pozo'); // String y Agregar pozo salen de la vista de reparto
   if (m === 'string' && S.mode !== 'string' && S.strings.some(x => x.holes.length)) S.stringAsk = true;
   S.mode = m;
   if (m === 'string' && !S.strings.length) newString();
@@ -1441,7 +1613,7 @@ function renderPanel() {
     $('clearSel').onclick = () => { S.sel.clear(); renderAll(); };
     $('mAddStr').onclick = () => {
       const st = activeStr() || newString(); let n = 0;
-      for (const h of [...sel].sort(byId)) if (stringOf(h.uid) !== st) { removeFromStrings([h.uid]); st.holes.push(h.uid); n++; }
+      for (const h of [...sel].sort(byId)) if (stringOf(h.uid) !== st) { removeFromStrings([h.uid]); st.holes.push(h.uid); primeSimple(h); n++; }
       save(); renderAll(); toast(`${n} pozos agregados a ${st.name} (${stringRange(st)}).`);
       if (st.holes.length > S.settings.stringMax) toast(`${st.name} supera el máximo de ${S.settings.stringMax} pozos.`, 4000);
     };
@@ -1477,6 +1649,10 @@ function renderPanel() {
     <div class="field"><span class="lbl">Detonadores por pozo</span>${typeButtons(h.type)}</div>
     ${detHtml || '<p class="hint">Elige Simple, Doble o Triple para cargar la etiqueta y el retardo de cada detonador.</p>'}
     ${stringSectionHtml(h)}
+    <div class="grid2">
+      <div class="field"><label for="f-drop">Detonador depositado por</label><select id="f-drop"><option value="">— Sin detonador en el pozo —</option>${S.progs.map(pr => `<option value="${pr.id}" ${h.drop?.p === pr.id ? 'selected' : ''}>${esc(pr.name)}</option>`).join('')}</select></div>
+      <div class="field"><label for="f-dropn">Detonadores dejados</label><input id="f-dropn" class="mono" inputmode="numeric" value="${h.drop?.n ?? ''}" placeholder="${h.drop ? dropCount(h) + ' (según tipo)' : '—'}" ${h.drop ? '' : 'disabled'}></div>
+    </div>
     <p class="eyebrow" style="margin-top:14px">Perforación</p>
     <div class="grid2">
       <div class="field"><label for="f-dd">Prof. diseño (m)</label><input id="f-dd" class="mono" inputmode="decimal" value="${h.dDesign === null ? '' : h.dDesign.toFixed(1)}"></div>
@@ -1510,6 +1686,8 @@ function renderPanel() {
         : `<button class="btn small danger" type="button" id="delOne">Eliminar pozo</button>`}
     </div>`;
   updDiff(h); bindStrSec(h);
+  $('f-drop').onchange = (e) => { const v = e.target.value; S.lastRep = [{ uid: h.uid, prev: h.drop ? { ...h.drop } : null }]; h.drop = v ? { p: v, n: h.drop?.n ?? null, at: new Date().toISOString() } : null; save(); renderAll(); };
+  $('f-dropn').oninput = (e) => { if (!h.drop) return; const v = num(e.target.value); h.drop.n = v === null ? null : Math.max(0, Math.round(v)); save(); renderOverlay(); };
   const det = (i) => { while (h.dets.length <= i) h.dets.push({ tag: '', delay: null }); return h.dets[i]; };
   const nextFrom = (el) => { const all = [...pane.querySelectorAll('[data-tag],[data-delay],#f-dr')]; const nx = all[all.indexOf(el) + 1]; if (nx) { nx.focus(); nx.select?.(); } };
   pane.querySelectorAll('[data-settype]').forEach(b => b.onclick = () => setTypeSel(b.dataset.settype));
@@ -1710,6 +1888,7 @@ function renderStrings() {
     <label class="check"><input type="checkbox" id="strFill" ${S.settings.stringFill ? 'checked' : ''}> Tramo automático: al tocar un pozo, agregar también los que quedan entre el último del string y ese pozo</label>
     <div class="field" style="max-width:320px"><label for="strFillBy">Pozos del tramo</label>
       <select id="strFillBy"><option value="line" ${S.settings.stringFillBy !== 'id' ? 'selected' : ''}>Los que están en línea entre ambos pozos</option><option value="id" ${S.settings.stringFillBy === 'id' ? 'selected' : ''}>Los de ID correlativo (1, 2, 3 … 10)</option></select></div>
+    <label class="check"><input type="checkbox" id="strPrime" ${S.settings.stringPrime ? 'checked' : ''}> Al agregar un pozo al string, asignarlo como primado simple (si aún no tiene tipo)</label>
     <label class="check"><input type="checkbox" id="strAuto" ${S.settings.autoString ? 'checked' : ''}> Al cargar la etiqueta de un pozo, agregarlo al string activo</label>
     <label class="check"><input type="checkbox" id="strShow" ${S.settings.showStrings ? 'checked' : ''}> Dibujar los strings en el plano</label>
     <p class="hint" style="margin-top:10px">${S.strings.length} strings · ${seq.size} pozos en strings · ${taggedNoStr} pozos etiquetados sin string.</p>`;
@@ -1737,6 +1916,7 @@ function renderStrings() {
   $('strMode').onclick = () => setMode('string');
   $('strMax').onchange = (e) => { S.settings.stringMax = Math.max(1, parseInt(e.target.value, 10) || 400); done(); };
   $('strAuto').onchange = (e) => { S.settings.autoString = e.target.checked; save(); };
+  $('strPrime').onchange = (e) => { S.settings.stringPrime = e.target.checked; save(); };
   $('strFill').onchange = (e) => { S.settings.stringFill = e.target.checked; save(); renderStrBar(); };
   $('strFillBy').onchange = (e) => { S.settings.stringFillBy = e.target.value; save(); };
   $('strShow').onchange = (e) => { S.settings.showStrings = e.target.checked; save(); renderOverlay(); };
@@ -1822,7 +2002,15 @@ function commitTypes(full = true) {
 
 function showTab(name) {
   document.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === name)));
-  for (const n of ['pozo', 'lista', 'str', 'simb']) $('pane-' + n).hidden = n !== name;
+  for (const n of ['pozo', 'lista', 'rep', 'str', 'simb']) $('pane-' + n).hidden = n !== name;
+  const rep = name === 'rep';
+  if (rep !== S.repMode) {
+    S.repMode = rep;
+    if (rep && (S.mode === 'string' || S.mode === 'add')) setMode('select');
+    if (rep) { S.confirm = null; toast('Vista de reparto: toca los pozos donde se deja el detonador (Área marca varios).', 4000); }
+    renderOverlay(); renderLegend(); renderRepBar(); renderPeek();
+  }
+  if (rep) renderRep();
   if (name === 'str') { S.confirm = null; renderStrings(); }
   if (name === 'lista') { renderTypeFilter(); renderTable(); }
   if (name === 'simb') { S.confirm = null; renderSimb(); }
@@ -1925,13 +2113,19 @@ $('btnPanel').onclick = () => setPanel(!UI.open);
 $('panelClose').onclick = () => setPanel(false);
 $('panelPin').onclick = () => { UI.pin = !UI.pin; saveUI(); applyUI(); };
 $('panelGrab').onclick = () => { UI.full = !UI.full; saveUI(); applyUI(); };
-$('peek').onclick = () => { showTab('pozo'); setPanel(true); };
+$('peek').onclick = () => { if (!S.repMode) showTab('pozo'); setPanel(true); };
 
 /** Barra desplegable inferior: resumen de lo seleccionado. */
 function renderPeek() {
   const t1 = $('peekT1'), t2 = $('peekT2'), lbl = $('peekLbl');
   if (!S.vp) { t1.textContent = 'Sin plano'; t2.textContent = 'Abre un PDF desde Archivo'; lbl.textContent = 'Ver panel'; return; }
   const sel = selected(); const seq = seqIndex();
+  if (S.repMode) {
+    const rs = repStats(), pr = activeProg(), h = sel.length === 1 ? sel[0] : null, hp = h && progOf(h);
+    t1.textContent = h ? `Pozo ${h.id} · ${hp ? `detonador de ${hp.name} (${dropCount(h)})` : 'sin detonador'}` : `Reparto · ${rs.pozos} de ${S.holes.length} pozos con detonador`;
+    t2.textContent = `Programador activo: ${pr ? pr.name : '— (se crea al tocar)'} · Pendientes ${rs.pend} · ${rs.dets} detonadores`;
+    lbl.textContent = 'Ver reparto'; return;
+  }
   if (sel.length === 1) {
     const h = sel[0], t = typeOf(h), q = seq.get(h.uid);
     t1.textContent = `Pozo ${h.id}` + (t ? ` · ${t.name}` : ' · sin tipo') + (q ? ` · ${q.s.name} N° ${q.n}` : '');
@@ -1956,12 +2150,12 @@ function renderPeek() {
  */
 async function printReport(kind) {
   if (!S.vp) { toast('Primero abre un plano.'); return; }
-  const opts = { full: { plan: true, report: true }, plan: { plan: true, report: false }, report: { plan: false, report: true } }[kind];
+  const opts = { full: { plan: true, report: true }, plan: { plan: true, report: false }, report: { plan: false, report: true }, rep: { plan: true, report: false, rep: true } }[kind];
   $('busy').textContent = 'Preparando impresión…'; $('busy').hidden = false;
   try {
     const bytes = await buildPdf(opts);
     if (window.claude?.use) {
-      await saveFile(baseName() + (kind === 'plan' ? '_plano_anotado.pdf' : kind === 'report' ? '_informe.pdf' : '_informe_completo.pdf'), new Blob([bytes], { type: 'application/pdf' }));
+      await saveFile(baseName() + (kind === 'plan' ? '_plano_anotado.pdf' : kind === 'report' ? '_informe.pdf' : kind === 'rep' ? '_plano_reparto.pdf' : '_informe_completo.pdf'), new Blob([bytes], { type: 'application/pdf' }));
       toast('En esta vista no se puede imprimir directo: se guardó el PDF para imprimirlo desde el equipo.', 6000);
       return;
     }
@@ -1996,11 +2190,12 @@ document.querySelectorAll('.pop [data-exp]').forEach(b => b.onclick = async () =
   try {
     if (k === 'pdf-full') await saveFile(baseName() + '_informe_completo.pdf', await pdfBlob({ plan: true, report: true }));
     if (k === 'pdf-plan') await saveFile(baseName() + '_plano_anotado.pdf', await pdfBlob({ plan: true, report: false }));
+    if (k === 'pdf-rep') await saveFile(baseName() + '_plano_reparto.pdf', await pdfBlob({ plan: true, report: false, rep: true }));
     if (k === 'pdf-report') await saveFile(baseName() + '_informe.pdf', await pdfBlob({ plan: false, report: true }));
     if (k === 'txt') await saveFile(baseName() + '_informe.txt', '﻿' + buildTxt());
     if (k === 'csv') await saveFile(baseName() + '_pozos.csv', '﻿' + buildCsv());
     if (k === 'csv-det') await saveFile(baseName() + '_detonadores.csv', '﻿' + buildCsvDets());
-    if (k === 'json') await saveFile(baseName() + '_respaldo.json', JSON.stringify({ app: 'blaster.lcv', version: 2, fileName: S.fileName, docKey: S.docKey, exportedAt: new Date().toISOString(), types: S.types, settings: S.settings, strings: S.strings, activeString: S.activeString, holes: S.holes }, null, 1));
+    if (k === 'json') await saveFile(baseName() + '_respaldo.json', JSON.stringify({ app: 'blaster.lcv', version: 2, fileName: S.fileName, docKey: S.docKey, exportedAt: new Date().toISOString(), types: S.types, settings: S.settings, strings: S.strings, activeString: S.activeString, progs: S.progs, activeProg: S.activeProg, holes: S.holes }, null, 1));
   } catch (err) { console.error(err); toast('No se pudo exportar: ' + (err.message || err.code || err), 5000); }
 });
 function baseName() { return (S.fileName || 'malla').replace(/\.pdf$/i, '').replace(/[^\w\-]+/g, '_'); }
@@ -2043,7 +2238,7 @@ function reportRows() {
       td: h.tDesign ?? '', dd: dec(h.dDesign, 1), dr: dec(h.dReal, 2), diff: diff === null ? '' : (diff > 0 ? '+' : '') + dec(diff, 2),
       stem: dec(h.stem, 2), clen: dec(chargeLen(h), 2), expl: h.expl || '', kg: dec(h.charge, 1),
       water: h.water ? 'Sí' + (h.waterLvl !== null ? ' ' + dec(h.waterLvl, 1) + ' m' : '') : 'No',
-      state: stateName(h.state), obs: (h.obs || '').replace(/\s+/g, ' ').trim(),
+      state: stateName(h.state), prog: progOf(h)?.name || '', obs: (h.obs || '').replace(/\s+/g, ' ').trim(),
     };
   });
 }
@@ -2061,6 +2256,8 @@ function summaryLines() {
     `Explosivo total: ${dec(s.kg, 1)} kg (${s.nKg} pozos)` + (s.byExpl.size ? '  |  ' + [...s.byExpl].map(([k, v]) => `${k}: ${dec(v, 1)} kg`).join('  |  ') : ''),
     `Pozos con agua: ${s.water}  |  Tapados: ${s.tapado}  |  Repasados: ${s.repasado}`,
   ];
+  const rs = repStats();
+  if (rs.pozos) L.push(`Reparto: ${rs.pozos} de ${S.holes.length} pozos con detonador (${rs.dets} det.)  |  ` + S.progs.map(pr => `${pr.name}: ${rs.by.get(pr.id)?.pozos || 0}`).join('  |  '));
   if (S.strings.length) L.push(`Strings: ` + S.strings.map(st => `${st.name} ${stringRange(st)} (${st.holes.length} pozos)`).join('  |  '));
   if (s.dupTags.length) L.push(`ATENCIÓN - etiquetas repetidas: ${s.dupTags.join(', ')}`);
   const over = S.strings.filter(st => st.holes.length > S.settings.stringMax);
@@ -2092,7 +2289,7 @@ function buildCsv() {
   const maxN = Math.max(1, ...S.types.map(t => t.n)); const seq = seqIndex();
   const head = ['Página', 'Malla', 'ID pozo', 'String', 'N° secuencia', 'Tipo', 'N° detonadores'];
   for (let i = 1; i <= maxN; i++) head.push(`Det ${i} etiqueta`, `Det ${i} retardo (ms)`);
-  head.push('Tiempo diseño (ms)', 'Prof. diseño (m)', 'Prof. real (m)', 'Diferencia (m)', 'Taco (m)', 'Largo carga (m)', 'Explosivo', 'Carga (kg)', 'Agua', 'Altura agua (m)', 'Estado', 'Observaciones', 'X plano', 'Y plano', 'Origen');
+  head.push('Tiempo diseño (ms)', 'Prof. diseño (m)', 'Prof. real (m)', 'Diferencia (m)', 'Taco (m)', 'Largo carga (m)', 'Explosivo', 'Carga (kg)', 'Agua', 'Altura agua (m)', 'Estado', 'Detonador depositado', 'Programador', 'Detonadores dejados', 'Observaciones', 'X plano', 'Y plano', 'Origen');
   const rows = [head];
   for (const h of sortedHoles()) {
     const t = typeOf(h); const ds = detsOf(h); const q = seq.get(h.uid);
@@ -2100,7 +2297,7 @@ function buildCsv() {
     for (let i = 0; i < maxN; i++) r.push(ds[i]?.tag || '', ds[i]?.delay ?? '');
     r.push(h.tDesign ?? '', dec(h.dDesign, 1), dec(h.dReal, 2), h.dReal !== null && h.dDesign !== null ? dec(h.dReal - h.dDesign, 2) : '',
       dec(h.stem, 2), dec(chargeLen(h), 2), h.expl || '', dec(h.charge, 1), h.water ? 'Sí' : 'No', dec(h.waterLvl, 2), stateName(h.state),
-      h.obs || '', dec(h.x, 1), dec(h.y, 1), h.manual ? 'Manual' : 'Plano');
+      h.drop ? 'Sí' : 'No', progOf(h)?.name || '', h.drop ? dropCount(h) : '', h.obs || '', dec(h.x, 1), dec(h.y, 1), h.manual ? 'Manual' : 'Plano');
     rows.push(r);
   }
   return csvJoin(rows);
@@ -2108,10 +2305,10 @@ function buildCsv() {
 /** Un detonador por fila, en orden de string y secuencia: sirve para programar los retardos. */
 function buildCsvDets() {
   const seq = seqIndex();
-  const rows = [['String', 'N° secuencia', 'Malla', 'ID pozo', 'Tipo', 'N° detonador', 'Etiqueta', 'Retardo (ms)', 'Tiempo diseño (ms)', 'Prof. real (m)', 'Estado']];
+  const rows = [['String', 'N° secuencia', 'Malla', 'ID pozo', 'Tipo', 'N° detonador', 'Etiqueta', 'Retardo (ms)', 'Tiempo diseño (ms)', 'Prof. real (m)', 'Estado', 'Programador']];
   for (const h of sortedHoles('seq')) {
     const t = typeOf(h); if (!t) continue; const q = seq.get(h.uid);
-    detsOf(h).forEach((d, i) => rows.push([q ? q.s.name : '', q ? q.n : '', h.group || '', h.id, t.name, i + 1, d.tag, d.delay ?? '', h.tDesign ?? '', dec(h.dReal ?? h.dDesign, 2), stateName(h.state)]));
+    detsOf(h).forEach((d, i) => rows.push([q ? q.s.name : '', q ? q.n : '', h.group || '', h.id, t.name, i + 1, d.tag, d.delay ?? '', h.tDesign ?? '', dec(h.dReal ?? h.dDesign, 2), stateName(h.state), progOf(h)?.name || '']));
   }
   return csvJoin(rows);
 }
@@ -2125,7 +2322,7 @@ function fitText(font, s, size, w) {
   return s + '...';
 }
 
-async function buildPdf({ plan = true, report = true } = {}) {
+async function buildPdf({ plan = true, report = true, rep = false } = {}) {
   const { PDFDocument, StandardFonts, rgb } = PDFLib;
   const doc = plan ? await PDFDocument.load(S.bytes.slice(0)) : await PDFDocument.create();
   const font = await doc.embedFont(StandardFonts.Helvetica);
@@ -2135,8 +2332,9 @@ async function buildPdf({ plan = true, report = true } = {}) {
     const pages = doc.getPages();
     for (let p = 1; p <= pages.length; p++) {
       const page = pages[p - 1]; const hs = S.holes.filter(h => h.page === p);
-      if (!hs.some(h => typeOf(h) || seq.has(h.uid)) && p !== S.pageNum) continue;
+      if (!hs.some(h => typeOf(h) || seq.has(h.uid) || h.drop) && p !== S.pageNum) continue;
       const r = S.r; // misma escala que en pantalla (unidades de página)
+      if (rep) { drawRepPage(page, hs, r, font, bold); continue; }
       // Strings: línea, flechas de sentido y nombre en el primer pozo
       if (S.settings.showStrings) {
         const byUid = new Map(hs.map(h => [h.uid, h]));
@@ -2219,6 +2417,35 @@ async function buildPdf({ plan = true, report = true } = {}) {
   return doc.save();
 }
 
+/** Plano de reparto: pozos con detonador en el color del programador, pendientes en gris, y cuadro resumen. */
+function drawRepPage(page, hs, r, font, bold) {
+  const { rgb } = PDFLib; const rs = repStats();
+  for (const h of hs) {
+    const pr = progOf(h);
+    if (pr) {
+      const c = hexRgb(pr.color);
+      page.drawCircle({ x: h.x, y: h.y, size: r * 1.3, color: c, opacity: .62, borderColor: c, borderWidth: r * .3 });
+      const n = dropCount(h); if (n > 1) { const t = String(n), fs = r * 1.25; page.drawText(t, { x: h.x - bold.widthOfTextAtSize(t, fs) / 2, y: h.y - fs * .35, size: fs, font: bold, color: rgb(1, 1, 1) }); }
+    } else page.drawCircle({ x: h.x, y: h.y, size: r * .95, borderColor: rgb(.45, .5, .5), borderWidth: r * .16, borderDashArray: [r * .35, r * .3] });
+  }
+  const { x: bx0, y: by0 } = page.getMediaBox();
+  const lh = 9, rows = S.progs.length + 4, w = 170, hgt = rows * lh + 10, x0 = bx0 + 12, y0 = by0 + 12;
+  page.drawRectangle({ x: x0, y: y0, width: w, height: hgt, color: rgb(1, 1, 1), opacity: 0.92, borderColor: rgb(0.2, 0.2, 0.2), borderWidth: 0.6 });
+  let y = y0 + hgt - 11;
+  page.drawText('REPARTO DE DETONADORES', { x: x0 + 6, y, size: 6.4, font: bold, color: rgb(0.1, 0.1, 0.1) }); y -= lh;
+  for (const pr of S.progs) {
+    const v = rs.by.get(pr.id) || { pozos: 0, dets: 0 };
+    page.drawCircle({ x: x0 + 10, y: y + 2.2, size: 3, color: hexRgb(pr.color) });
+    page.drawText(fitText(font, pr.name, 6.5, w - 70), { x: x0 + 18, y, size: 6.5, font, color: rgb(0.1, 0.1, 0.1) });
+    page.drawText(W(`${v.pozos} pozos · ${v.dets} det.`), { x: x0 + w - 62, y, size: 6.2, font: bold, color: rgb(0.1, 0.1, 0.1) });
+    y -= lh;
+  }
+  page.drawCircle({ x: x0 + 10, y: y + 2.2, size: 3, borderColor: rgb(.45, .5, .5), borderWidth: .7, borderDashArray: [1, 1] });
+  page.drawText(W(`Pendientes: ${rs.pend} pozos`), { x: x0 + 18, y, size: 6.5, font, color: rgb(0.1, 0.1, 0.1) }); y -= lh;
+  page.drawText(W(`Total: ${rs.pozos} de ${S.holes.length} pozos · ${rs.dets} detonadores`), { x: x0 + 6, y, size: 6, font, color: rgb(0.25, 0.25, 0.25) }); y -= lh;
+  page.drawText(W(`blaster.lcv · ${nowCl()}`), { x: x0 + 6, y, size: 5.5, font, color: rgb(0.4, 0.4, 0.4) });
+}
+
 function drawReport(doc, font, bold) {
   const { rgb } = PDFLib;
   const PW = 792, PH = 612, M = 28, FS = 6.8, LH = 8.6, avail = PW - 2 * M;
@@ -2278,7 +2505,7 @@ $('fileJson').onchange = async (e) => {
   if (!data || !Array.isArray(data.holes)) { toast('El archivo no es un respaldo válido de esta aplicación.', 4000); return; }
   if (!S.pdf) { toast('Abre primero el plano PDF y luego importa el respaldo.', 4000); return; }
   S.holes = data.holes.map(normHole); if (Array.isArray(data.types) && data.types.length) S.types = data.types;
-  S.settings = normSettings({ ...S.settings, ...(data.settings || {}) }); loadStrings(data);
+  S.settings = normSettings({ ...S.settings, ...(data.settings || {}) }); loadStrings(data); if (Array.isArray(data.progs)) loadProgs(data);
   uidSeq = Math.max(0, ...S.holes.map(h => h.uid)) + 1; S.sel.clear();
   computeRadius(); save(); renderAll(); renderTypeFilter();
   toast(data.fileName && data.fileName !== S.fileName ? `Respaldo importado (era de «${data.fileName}»). Revisa que coincida con este plano.` : `Respaldo importado: ${S.holes.length} pozos.`, 4500);
@@ -2340,6 +2567,9 @@ async function loadDemo() {
     return st;
   };
   const s1 = mk([1, 2]), s2 = mk([3, 4]); s2.start = s1.start + s1.holes.length; S.activeString = s1.id;
+  // Reparto de ejemplo: dos programadores
+  S.progs = []; const pa = newProg(), pb = newProg(); pa.name = 'Programador A (ejemplo)'; pb.name = 'Programador B (ejemplo)'; S.activeProg = pa.id;
+  for (const h of S.holes) { const row = Math.floor(idNum(h.id) / 100); if (row <= 3) h.drop = { p: pa.id, n: null, at: null }; else if (row <= 5) h.drop = { p: pb.id, n: null, at: null }; }
   S.sel.clear(); renderAll();
 }
 

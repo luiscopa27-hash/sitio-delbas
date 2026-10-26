@@ -16,8 +16,13 @@ Aplicación web para trabajar sobre planos PDF de mallas de perforación y trona
   - Editables (color, símbolo, cantidad) y se pueden agregar tipos nuevos.
 - **Por cada detonador**: etiqueta (código alfanumérico, se guarda en mayúsculas) y retardo en ms.
 - **Ficha del pozo**: tiempo de diseño (ms, con botón para usarlo como retardo), profundidad de diseño y real (con diferencia), estado (normal / tapado / repasado), agua (sí/no y altura), taco, largo de columna de carga calculado, tipo de explosivo, carga en kg, malla/disparo y observaciones.
+- **Reparto de detonadores a piso** (pestaña *Reparto*): mientras está abierta, el plano cambia a la vista de reparto y muestra los pozos donde ya se dejó el detonador, pintados con el color del programador que lo dejó (los pendientes en gris).
+  - Paleta de programadores: nombre y color de cada uno; se elige el activo en la barra de reparto sobre el plano.
+  - Un toque marca el pozo (otro toque lo desmarca); con *Área* se marcan varios. *Deshacer* revierte la última marca.
+  - Resumen de pozos y detonadores por programador, y pendientes. Plano de reparto en PDF o impreso; columnas *Detonador depositado* y *Programador* en los CSV e informes.
 - **Strings de secuencia**: una línea de color une los pozos en el orden en que se etiquetan, con flechas de sentido y N° de secuencia junto a cada pozo.
   - Modo **String** en el plano: cada toque agrega el pozo al final del string activo; tocar el último lo quita.
+  - **Primado simple**: cada pozo que entra a un string queda asignado como *Simple* si aún no tiene tipo (se puede desactivar; *Deshacer* también revierte el tipo asignado).
   - **Tramo automático**: tocar el pozo 1 y luego el 10 agrega en orden los pozos que quedan entre ambos (en línea recta, o por ID correlativo según la opción elegida). Mayús/Ctrl + toque agrega solo ese pozo. **Deshacer** (o `Retroceso`) quita el último tramo.
   - **Quitar** pozos: en la barra String, *Quitar* + toque saca un pozo de su string y arrastrar un rectángulo saca varios (también Alt + toque, el botón *Quitar del string* de la ficha o *Quitar de los strings* con selección múltiple). Los pozos siguientes se renumeran y *Deshacer* los devuelve a su lugar.
   - Al volver al modo String después de usar otro comando, pregunta si **continuar** el mismo string o **iniciar otro**; el nuevo toma un color distinto.
