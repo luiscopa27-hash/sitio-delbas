@@ -1,8 +1,8 @@
 # Instalar blaster.lcv
 
-## Android (teléfono o tablet) — archivo `blaster-lcv-1.0.apk`
+## Android (teléfono o tablet) — archivo `blaster-lcv-1.1.apk`
 
-1. Copia `blaster-lcv-1.0.apk` al equipo (descarga, WhatsApp, correo, cable USB o Drive).
+1. Copia `blaster-lcv-1.1.apk` al equipo (descarga, WhatsApp, correo, cable USB o Drive).
 2. Ábrelo desde *Archivos* o *Descargas*.
 3. La primera vez Android pide permitir **«Instalar apps desconocidas»** para la app desde la que lo abriste (Chrome, Archivos, WhatsApp…). Actívalo y vuelve atrás.
 4. Toca **Instalar**. Si aparece Play Protect, elige *Instalar de todos modos* (la app no está publicada en Play Store).

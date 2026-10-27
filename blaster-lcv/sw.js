@@ -1,5 +1,5 @@
 // Service worker: guarda la app y sus librerías para usarla sin conexión en terreno.
-const CACHE = 'blaster-lcv-v10';
+const CACHE = 'blaster-lcv-v11';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon.svg',
   'vendor/pdf.min.js', 'vendor/pdf.worker.min.js', 'vendor/pdf-lib.min.js'];
 

@@ -127,6 +127,9 @@ button { cursor: pointer; }
 #pdfCanvas { display: block; }
 #overlay { position: absolute; inset: 0; overflow: visible; }
 #overlay text { font-family: var(--font-data); font-weight: 500; paint-order: stroke; stroke: #fff; stroke-linejoin: round; }
+#lassoSvg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+#lassoPoly { fill: color-mix(in srgb, var(--accent) 14%, transparent); stroke: var(--accent); stroke-width: 2; stroke-dasharray: 6 4; stroke-linejoin: round; }
+#stage.mode-lasso { cursor: crosshair; }
 #selRect { position: absolute; border: 1.5px dashed var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); pointer-events: none; }
 
 .seg { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
@@ -141,6 +144,8 @@ button { cursor: pointer; }
   background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; box-shadow: 0 1px 4px rgba(0,0,0,.12); font-size: .88rem;
 }
 .strBar .sbFill { display: inline-flex; align-items: center; gap: 5px; font-weight: 500; min-height: 36px; }
+.repPrimeBar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.repPrime button { padding: 6px 10px; font-size: .84rem; }
 .repBar .rbTitle { font: 700 .95rem var(--font-display); text-transform: uppercase; letter-spacing: .04em; }
 .progChips { display: flex; flex-wrap: wrap; gap: 6px; }
 .progChips button { border: 2px solid var(--line); background: var(--surface); border-radius: 999px; padding: 4px 12px 4px 6px; min-height: 36px; display: inline-flex; align-items: center; gap: 6px; font-weight: 600; font-size: .86rem; }
@@ -276,6 +281,11 @@ button { cursor: pointer; }
 .colsGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 10px; }
 .dets { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
 .detsHead, .detRow { display: grid; grid-template-columns: 22px minmax(0, 1fr) 92px; gap: 8px; align-items: center; }
+.reprime { border: 1px solid var(--line); border-radius: var(--radius); padding: 6px 10px 2px; margin-bottom: 12px; background: var(--surface-2); }
+.reprime .check { font-weight: 600; }
+.reprimeBox .field { margin-bottom: 8px; }
+.detTotal { font-size: .86rem; color: var(--muted); margin: 4px 0 6px; }
+.detTotal b { color: var(--ink); font-size: 1rem; }
 .detsHead { font-size: .76rem; font-weight: 600; color: var(--muted); }
 .detRow input[data-tag] { text-transform: uppercase; }
 .detRow input { border: 1px solid var(--line); background: var(--surface-2); border-radius: var(--radius); padding: 7px 9px; width: 100%; min-width: 0; }
@@ -370,6 +380,10 @@ tbody tr.sel { background: color-mix(in srgb, var(--accent) 16%, var(--surface))
       <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 2l14 10-6.3 1.3L16 20l-2.8 1.4-3.4-6.8L5 19z"/></svg><span>Seleccionar</span></button>
     <button class="rb" type="button" data-cmd="area" data-mode="area" aria-pressed="false" title="Seleccionar varios pozos con un rectángulo (A)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-dasharray="3 2.5" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="1"/></svg><span>Área</span></button>
+    <button class="rb" type="button" data-cmd="lasso" data-mode="lasso" aria-pressed="false" title="Lazo: dibuja una forma libre alrededor de los pozos para seleccionarlos (L)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 4c5 0 9 2.4 9 5.5S17 15 12 15c-1.6 0-3-.2-4.3-.6"/><path d="M12 4C7 4 3 6.4 3 9.5c0 1.6 1 3 2.6 4"/><path d="M6.5 14.2c-.9.9-.6 2.4.6 2.8 1 .3 1.6 1.2 1.2 2.2L7.6 21"/></svg><span>Lazo</span></button>
+    <button class="rb" type="button" data-cmd="rep" id="btnRep" aria-pressed="false" title="Reparto de detonadores a piso (R)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="6" cy="7" r="2.6" fill="currentColor"/><circle cx="18" cy="7" r="2.6"/><circle cx="6" cy="17" r="2.6"/><circle cx="18" cy="17" r="2.6" fill="currentColor"/><path d="M9.5 12h5M12 9.5v5"/></svg><span>Reparto</span></button>
     <button class="rb" type="button" data-cmd="string" data-mode="string" aria-pressed="false" title="Unir pozos en secuencia (S)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="4.5" cy="18" r="2.2"/><circle cx="12" cy="6" r="2.2"/><circle cx="19.5" cy="16.5" r="2.2"/><path d="M5.8 16l5-8M13.4 8l4.9 6.7"/></svg><span>String</span></button>
     <button class="rb" type="button" data-cmd="add" data-mode="add" aria-pressed="false" title="Agregar un pozo que no se detectó (N)">
@@ -395,6 +409,7 @@ tbody tr.sel { background: color-mix(in srgb, var(--accent) 16%, var(--surface))
         <svg id="overlay" xmlns="http://www.w3.org/2000/svg"></svg>
       </div>
       <div id="selRect" hidden></div>
+      <svg id="lassoSvg" hidden><polygon id="lassoPoly" points=""/></svg>
     </div>
     <div class="strBar" id="strBar" hidden>
       <span id="sbName"></span>
@@ -409,6 +424,7 @@ tbody tr.sel { background: color-mix(in srgb, var(--accent) 16%, var(--surface))
     <div class="strBar repBar" id="repBar" hidden>
       <b class="rbTitle">Reparto</b>
       <div class="progChips" id="progChips" role="group" aria-label="Programador activo"></div>
+      <div class="repPrimeBar" id="repPrimeBar"></div>
       <button class="btn small" type="button" id="rbUndo" title="Revierte la última marca">Deshacer</button>
       <button class="btn small" type="button" id="rbExit" title="Volver a la vista normal">Salir</button>
     </div>
@@ -549,7 +565,7 @@ const STATES = [
   { key: 'tapado', name: 'Tapado' },
   { key: 'repasado', name: 'Repasado' },
 ];
-const MARK_WATER = '#1597d4', MARK_TAPADO = '#222222', MARK_REPASADO = '#1f9a4c';
+const MARK_WATER = '#1597d4', MARK_TAPADO = '#222222', MARK_REPASADO = '#1f9a4c', MARK_REPRIME = '#7c3aed';
 const EXPLOSIVE_HINTS = ['ANFO', 'ANFO pesado', 'Emulsión', 'Emulsión gasificada', 'Booster'];
 const STRING_COLORS = ['#7c3aed', '#0f8f80', '#c2410c', '#2563eb', '#be185d', '#4d7c0f', '#a16207', '#0e7490', '#9333ea', '#b91c1c', '#475569', '#15803d'];
 /** Información que se puede mostrar junto a cada pozo (en pantalla y en el plano PDF). */
@@ -581,12 +597,14 @@ const REPORT_COLS = [
   { k: 'water', n: 'Agua', w: 38, tw: 9 },
   { k: 'state', n: 'Estado', w: 42, tw: 9 },
   { k: 'prog', n: 'Programador', w: 56, tw: 14 },
+  { k: 'reprim', n: 'Reprimado', w: 40, tw: 9 },
+  { k: 'used', n: 'Det. usados', w: 34, tw: 7, right: 1 },
   { k: 'obs', n: 'Observaciones', w: 0 },
 ];
 const DEFAULT_SETTINGS = {
   label: { seq: true, tag: true, delay: true, dReal: false, stem: false, charge: false, expl: false },
   showMarks: true, showUnassigned: true, showStrings: true, autoString: true, stringMax: 400,
-  stringFill: true, stringFillBy: 'line', stringPrime: true, showDrops: false,
+  stringFill: true, stringFillBy: 'line', stringPrime: true, showDrops: false, repPrime: '',
   reportCols: Object.fromEntries(REPORT_COLS.map(c => [c.k, true])), reportSort: 'id',
 };
 function normSettings(x = {}) {
@@ -642,10 +660,17 @@ function normHole(h) {
   for (const k of ['group', 'expl', 'obs', 'state', 'type']) if (h[k] === undefined) h[k] = '';
   h.water = !!h.water;
   if (h.drop === undefined) h.drop = null; // reparto: {p: programador, n: detonadores o null = según tipo, at: fecha}
+  h.reprime = !!h.reprime;                  // pozo reprimado
+  if (h.reprimeN === undefined) h.reprimeN = null; // detonadores agregados al reprimar (null = 1)
+  if (h.reprimeObs === undefined) h.reprimeObs = '';
   return h;
 }
 /** Detonadores vigentes según el tipo del pozo (los sobrantes se conservan pero no cuentan). */
 function detsOf(h) { const t = typeOf(h); if (!t) return []; return Array.from({ length: t.n }, (_, i) => h.dets[i] || { tag: '', delay: null }); }
+/** Detonadores agregados al reprimar el pozo (1 si no se indicó otro número). */
+function reprimeExtra(h) { return h.reprime ? (h.reprimeN ?? 1) : 0; }
+/** Detonadores usados en el pozo: los que pide su tipo más los agregados al reprimar. */
+function detsUsed(h) { return (typeOf(h)?.n || 0) + reprimeExtra(h); }
 function chargeLen(h) { const d = h.dReal ?? h.dDesign; return d !== null && h.stem !== null ? d - h.stem : null; }
 function detLabel(d, withDelay = true) { return d.tag + (withDelay && d.delay !== null ? ` (${d.delay} ms)` : ''); }
 
@@ -808,8 +833,15 @@ function askString(h, single) {
   };
   $('askCancel').onclick = close;
 }
+function repPrimeButtons(idp) {
+  const opts = [['', 'Mantener tipo'], ...S.types.map(t => [t.key, t.name])];
+  return `<div class="seg repPrime" role="group" aria-label="Primado al repartir">${opts.map(([k, n]) => `<button type="button" data-${idp}="${esc(k)}" aria-pressed="${(S.settings.repPrime || '') === k}">${esc(n)}</button>`).join('')}</div>`;
+}
 function renderRepBar() {
+  $('btnRep').setAttribute('aria-pressed', String(S.repMode));
   const bar = $('repBar'); bar.hidden = !S.repMode || !S.vp; if (bar.hidden) return;
+  $('repPrimeBar').innerHTML = `<span class="hint">Primado:</span>${repPrimeButtons('rpb')}`;
+  $('repPrimeBar').querySelectorAll('[data-rpb]').forEach(b => b.onclick = () => { S.settings.repPrime = b.dataset.rpb; save(); renderRepBar(); renderRep(); toast(b.dataset.rpb ? `Los pozos que marques quedarán como ${typeOf({ type: b.dataset.rpb })?.name}.` : 'Al marcar se mantiene el tipo de cada pozo.'); });
   const rs = repStats();
   $('progChips').innerHTML = S.progs.map(pr => { const v = rs.by.get(pr.id); return `<button type="button" data-prog="${pr.id}" aria-pressed="${pr.id === S.activeProg}" style="--pc:${pr.color}"><span class="dot"></span>${esc(pr.name)} <span class="mono">${v ? v.pozos : 0}</span></button>`; }).join('')
     + `<button type="button" id="progAddChip" title="Agregar programador">+ Programador</button>`;
@@ -817,6 +849,7 @@ function renderRepBar() {
   $('progAddChip').onclick = () => { const pr = newProg(); save(); renderAll(); toast(`${pr.name} agregado y activo. Cambia su nombre en la pestaña Reparto.`); };
 }
 $('rbUndo').onclick = undoRep;
+$('btnRep').onclick = () => showTab(S.repMode ? 'pozo' : 'rep');
 $('rbExit').onclick = () => showTab('pozo');
 
 function renderRep() {
@@ -835,7 +868,7 @@ function renderRep() {
     </div>`; };
   pane.innerHTML = `
     <p class="eyebrow">Reparto de detonadores a piso</p>
-    <p class="hint">Mientras esta pestaña está abierta, el plano muestra los pozos donde ya se dejó el detonador, con el color de quien lo dejó. Elige el programador y toca cada pozo (otro toque lo desmarca). Con <b>Área</b> marcas varios de una vez.</p>
+    <p class="hint">Mientras esta pestaña (o el comando <b>Reparto</b> de la barra) está activa, el plano muestra los pozos donde ya se dejó el detonador, con el color de quien lo dejó. Elige el programador y el primado, y toca cada pozo (otro toque lo desmarca). Con <b>Área</b> o <b>Lazo</b> marcas varios de una vez.</p>
     <div class="stats">
       <div class="stat"><div class="v">${rs.pozos} / ${S.holes.length}</div><div class="k">Pozos con detonador</div></div>
       <div class="stat"><div class="v">${rs.pend}</div><div class="k">Pozos pendientes</div></div>
@@ -847,6 +880,7 @@ function renderRep() {
     <div class="rowBtns"><button class="btn small primary" type="button" id="progAdd">+ Agregar programador</button></div>
     <div class="sectionGap"></div>
     <p class="eyebrow">Opciones</p>
+    <div class="field"><span class="lbl">Primado al repartir (el pozo marcado toma este tipo)</span>${repPrimeButtons('rpt')}</div>
     <label class="check"><input type="checkbox" id="optDrops" ${S.settings.showDrops ? 'checked' : ''}> Mostrar también en la vista normal una marca con el color del programador</label>
     <div class="rowBtns" style="margin-top:8px">${S.confirm === 'clrRep'
       ? `<span class="hint">¿Borrar todas las marcas de reparto?</span><button class="btn small danger solid" type="button" id="clrRepYes">Borrar</button><button class="btn small" type="button" id="clrRepNo">Cancelar</button>`
@@ -867,6 +901,7 @@ function renderRep() {
   });
   $('progAdd').onclick = () => { const pr = newProg(); done(); $('pn-' + (S.progs.length - 1))?.select(); toast(`${pr.name} agregado y activo.`); };
   $('optDrops').onchange = (e) => { S.settings.showDrops = e.target.checked; save(); };
+  pane.querySelectorAll('[data-rpt]').forEach(b => b.onclick = () => { S.settings.repPrime = b.dataset.rpt; save(); renderRep(); renderRepBar(); });
   if ($('clrRep')) $('clrRep').onclick = () => { S.confirm = 'clrRep'; renderRep(); };
   if ($('clrRepNo')) $('clrRepNo').onclick = () => { S.confirm = null; renderRep(); };
   if ($('clrRepYes')) $('clrRepYes').onclick = () => { S.lastRep = S.holes.filter(h => h.drop).map(h => ({ uid: h.uid, prev: { ...h.drop } })); S.holes.forEach(h => { h.drop = null; }); S.confirm = null; done(); toast('Reparto borrado. «Deshacer» en la barra de reparto lo recupera.'); };
@@ -902,22 +937,34 @@ function repStats() {
   return { by, pozos, dets, pend: S.holes.length - pozos };
 }
 /** Vista de reparto: un toque marca el pozo con el programador activo; otro toque lo desmarca. */
+/** Primado elegido para el reparto (Simple, Doble, Triple…), o null si se mantiene el tipo del pozo. */
+function repPrimeType() { return S.settings.repPrime ? S.types.find(t => t.key === S.settings.repPrime) || null : null; }
 function repClick(h) {
-  const pr = activeProg() || newProg(); const prev = h.drop ? { ...h.drop } : null;
+  const pr = activeProg() || newProg(); const prev = h.drop ? { ...h.drop } : null, prevType = h.type; const pt = repPrimeType();
   if (h.drop && h.drop.p === pr.id) { h.drop = null; toast(`Pozo ${h.id}: se quitó la marca de ${pr.name}.`); }
-  else { const old = progOf(h); h.drop = { p: pr.id, n: null, at: new Date().toISOString() }; toast(old ? `Pozo ${h.id} reasignado de ${old.name} a ${pr.name}.` : `Pozo ${h.id}: detonador depositado · ${pr.name}.`); }
-  S.lastRep = [{ uid: h.uid, prev }];
+  else {
+    const old = progOf(h); h.drop = { p: pr.id, n: null, at: new Date().toISOString() };
+    if (pt) h.type = pt.key;
+    toast((old ? `Pozo ${h.id} reasignado de ${old.name} a ${pr.name}` : `Pozo ${h.id}: detonador depositado · ${pr.name}`) + (pt ? ` · ${pt.name} (${pt.n} det.)` : '') + '.');
+  }
+  S.lastRep = [{ uid: h.uid, prev, prevType }];
   S.sel.clear(); S.sel.add(h.uid); save(); renderAll();
 }
 function repArea(list) {
   const pr = activeProg() || newProg(); const changes = [];
-  for (const h of list) { if (h.drop && h.drop.p === pr.id) continue; changes.push({ uid: h.uid, prev: h.drop ? { ...h.drop } : null }); h.drop = { p: pr.id, n: null, at: new Date().toISOString() }; }
+  const pt = repPrimeType();
+  for (const h of list) {
+    if (h.drop && h.drop.p === pr.id && (!pt || h.type === pt.key)) continue;
+    changes.push({ uid: h.uid, prev: h.drop ? { ...h.drop } : null, prevType: h.type });
+    if (!(h.drop && h.drop.p === pr.id)) h.drop = { p: pr.id, n: null, at: new Date().toISOString() };
+    if (pt) h.type = pt.key;
+  }
   S.lastRep = changes; save(); renderAll();
-  toast(changes.length ? `${changes.length} pozo(s) marcados con detonador · ${pr.name}.` : 'Todos los pozos del área ya estaban marcados por ese programador.');
+  toast(changes.length ? `${changes.length} pozo(s) marcados con detonador · ${pr.name}${pt ? ` · ${pt.name}` : ''}.` : 'Todos los pozos de la zona ya estaban marcados por ese programador.');
 }
 function undoRep() {
   if (!S.lastRep || !S.lastRep.length) { toast('No hay acciones de reparto para deshacer.'); return; }
-  for (const c of S.lastRep) { const h = S.holes.find(x => x.uid === c.uid); if (h) h.drop = c.prev; }
+  for (const c of S.lastRep) { const h = S.holes.find(x => x.uid === c.uid); if (h) { h.drop = c.prev; if (c.prevType !== undefined) h.type = c.prevType; } }
   toast(`Se deshizo la última marca (${S.lastRep.length} pozo(s)).`); S.lastRep = null; save(); renderAll();
 }
 /** Primado simple: un pozo que entra a un string sin tipo queda como Simple. */
@@ -1371,6 +1418,7 @@ function marksSvg(h, r) {
   if (h.water) o += `<path d="M${x} ${-r * 1.15} q${m} ${m * 1.3} 0 ${m * 2.1} q${-m} ${-m * .8} 0 ${-m * 2.1}Z" fill="${MARK_WATER}"/>`;
   if (h.state === 'tapado') o += `<rect x="${x - m}" y="${r * .25}" width="${m * 2}" height="${m * 2}" fill="${MARK_TAPADO}"/>`;
   if (h.state === 'repasado') o += `<circle cx="${x}" cy="${r * .25 + m}" r="${m}" fill="${MARK_REPASADO}"/>`;
+  if (h.reprime) o += `<g transform="translate(${-r * .2} ${-r * 2.05})"><circle r="${r * .62}" fill="${MARK_REPRIME}"/><text text-anchor="middle" y="${r * .3}" font-size="${r * .85}" font-weight="700" fill="#fff" stroke="none">R</text></g>`;
   return o;
 }
 function tagCounts() {
@@ -1398,7 +1446,7 @@ function renderLegend() {
   $('legendFloat').innerHTML = S.types.map(t => `<div class="row">${symbolSvg(t, 16)}<span>${esc(t.name)}</span><b>${counts.get(t.key) || 0}</b></div>`).join('')
     + `<div class="row">${symbolSvg(null, 16)}<span>Sin asignar</span><b>${none}</b></div>`
     + (S.settings.showMarks ? `<div class="row marks"><span class="mk" style="background:${MARK_WATER};border-radius:50% 50% 50% 0;transform:rotate(-45deg)"></span>Agua
-       <span class="mk" style="background:${MARK_TAPADO}"></span>Tapado <span class="mk" style="background:${MARK_REPASADO};border-radius:50%"></span>Repasado</div>` : '');
+       <span class="mk" style="background:${MARK_TAPADO}"></span>Tapado <span class="mk" style="background:${MARK_REPASADO};border-radius:50%"></span>Repasado <span class="mk" style="background:${MARK_REPRIME};border-radius:50%"></span>Reprimado</div>` : '');
 }
 
 function renderAll() { renderOverlay(); renderLegend(); renderPanel(); renderTable(); renderStrings(); renderStrBar(); renderRepBar(); renderRep(); renderPeek(); }
@@ -1441,7 +1489,7 @@ stage.addEventListener('pointerdown', (e) => {
     $('selRect').hidden = true; return;
   }
   const area = S.mode === 'area' || e.shiftKey || (S.mode === 'string' && S.strOp === 'remove');
-  gest = { kind: area ? 'area' : 'pan', sx: p.x, sy: p.y, tx: S.tx, ty: S.ty, moved: false, add: e.ctrlKey || e.metaKey || e.shiftKey };
+  gest = { kind: S.mode === 'lasso' ? 'lasso' : area ? 'area' : 'pan', sx: p.x, sy: p.y, tx: S.tx, ty: S.ty, moved: false, add: e.ctrlKey || e.metaKey || e.shiftKey, pts: [p] };
 });
 stage.addEventListener('pointermove', (e) => {
   if (!ptrs.has(e.pointerId) || !gest) return;
@@ -1456,31 +1504,58 @@ stage.addEventListener('pointermove', (e) => {
   if (!gest.moved && Math.hypot(dx, dy) < 5) return;
   gest.moved = true;
   if (gest.kind === 'pan') { stage.classList.add('dragging'); S.tx = gest.tx + dx; S.ty = gest.ty + dy; applyXf(); }
+  else if (gest.kind === 'lasso') {
+    const last = gest.pts[gest.pts.length - 1];
+    if (Math.hypot(p.x - last.x, p.y - last.y) >= 3) gest.pts.push(p);
+    $('lassoSvg').hidden = false; $('lassoPoly').setAttribute('points', gest.pts.map(q => q.x.toFixed(1) + ',' + q.y.toFixed(1)).join(' '));
+  }
   else if (gest.kind === 'area') {
     const r = $('selRect'); r.hidden = false;
     Object.assign(r.style, { left: Math.min(p.x, gest.sx) + 'px', top: Math.min(p.y, gest.sy) + 'px', width: Math.abs(dx) + 'px', height: Math.abs(dy) + 'px' });
   }
 });
+/** Punto dentro de un polígono (regla par-impar). */
+function inPolygon(pt, poly) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const a = poly[i], b = poly[j];
+    if ((a.y > pt.y) !== (b.y > pt.y) && pt.x < (b.x - a.x) * (pt.y - a.y) / (b.y - a.y) + a.x) inside = !inside;
+  }
+  return inside;
+}
+/** Pozos encerrados por un rectángulo (Área) o un lazo: marca reparto, saca de strings o selecciona, según el modo. */
+function applyShape(inside, add) {
+  if (S.repMode) { repArea(inside); return; }
+  if (S.mode === 'string' && S.strOp === 'remove') {
+    const n = removeHolesFromStrings(inside); save(); renderAll();
+    toast(n ? `${n} pozo(s) sacados de sus strings. «Deshacer» los devuelve.` : 'No había pozos de strings en esa zona.');
+    return;
+  }
+  if (!add) S.sel.clear();
+  for (const h of inside) S.sel.add(h.uid);
+  showTab('pozo'); renderAll();
+  if (S.sel.size) { toast(`${S.sel.size} pozos seleccionados.`); if (UI.autoOpen) setPanel(true); }
+  else toast('No quedaron pozos dentro de la selección.');
+}
 function endPtr(e) {
   if (!ptrs.has(e.pointerId)) return;
   const p = stagePt(e); ptrs.delete(e.pointerId); stage.classList.remove('dragging');
   if (!gest) return;
   if (gest.kind === 'pinch') { if (ptrs.size === 0) gest = null; return; }
   const g = gest; gest = null;
+  if (g.kind === 'lasso') {
+    $('lassoSvg').hidden = true; $('lassoPoly').setAttribute('points', '');
+    if (g.moved && g.pts.length > 2) {
+      const poly = g.pts.map(q => worldPt(q.x, q.y));
+      applyShape(pageHoles().filter(h => inPolygon(toScreen(h), poly)), g.add);
+      return;
+    }
+    // un toque sin arrastrar en modo Lazo funciona como un toque normal (sigue abajo)
+  }
   if (g.kind === 'area' && g.moved) {
     $('selRect').hidden = true;
     const a = worldPt(Math.min(p.x, g.sx), Math.min(p.y, g.sy)), b = worldPt(Math.max(p.x, g.sx), Math.max(p.y, g.sy));
-    if (S.repMode) { repArea(pageHoles().filter(h => { const q = toScreen(h); return q.x >= a.x && q.x <= b.x && q.y >= a.y && q.y <= b.y; })); return; }
-    if (S.mode === 'string' && S.strOp === 'remove') {
-      const inside = pageHoles().filter(h => { const q = toScreen(h); return q.x >= a.x && q.x <= b.x && q.y >= a.y && q.y <= b.y; });
-      const n = removeHolesFromStrings(inside); save(); renderAll();
-      toast(n ? `${n} pozo(s) sacados de sus strings. «Deshacer» los devuelve.` : 'No había pozos de strings en esa área.');
-      return;
-    }
-    if (!g.add) S.sel.clear();
-    for (const h of pageHoles()) { const q = toScreen(h); if (q.x >= a.x && q.x <= b.x && q.y >= a.y && q.y <= b.y) S.sel.add(h.uid); }
-    showTab('pozo'); renderAll();
-    if (S.sel.size) { toast(`${S.sel.size} pozos seleccionados.`); if (UI.autoOpen) setPanel(true); }
+    applyShape(pageHoles().filter(h => { const q = toScreen(h); return q.x >= a.x && q.x <= b.x && q.y >= a.y && q.y <= b.y; }), g.add);
     return;
   }
   if (g.moved) return;
@@ -1639,6 +1714,14 @@ function renderPanel() {
         <input id="f-del${i}" class="mono" data-delay="${i}" value="${d.delay ?? ''}" inputmode="numeric" placeholder="ms" aria-label="Retardo detonador ${i + 1} en ms">
         <span class="tagWarn" data-warn="${i}" ${d.tag && tc.get(d.tag) > 1 ? '' : 'hidden'}>Esta etiqueta ya está usada en otro pozo.</span></div>`).join('')}</div>`;
   }
+  detHtml += `<div class="reprime">
+      <label class="check" for="f-rep"><input type="checkbox" id="f-rep" ${h.reprime ? 'checked' : ''}> Pozo reprimado</label>
+      <div class="reprimeBox" ${h.reprime ? '' : 'hidden'}>
+        <div class="field"><label for="f-repn">Detonadores agregados al reprimar</label><input id="f-repn" class="mono" inputmode="numeric" value="${h.reprimeN ?? ''}" placeholder="1"></div>
+        <div class="field"><label for="f-repobs">Comentario para el informe</label><textarea id="f-repobs" placeholder="Ej.: pozo colapsado, se volvió a primar con booster y detonador nuevo">${esc(h.reprimeObs)}</textarea></div>
+      </div>
+      <p class="detTotal" id="detTotal">Detonadores usados en este pozo: <b class="mono">${detsUsed(h)}</b>${h.reprime ? ` (${typeOf(h)?.n || 0} por tipo + ${reprimeExtra(h)} por reprimado)` : ''}</p>
+    </div>`;
   const confirming = S.confirm === 'del';
   pane.innerHTML = `
     <div class="holeHead">
@@ -1686,6 +1769,10 @@ function renderPanel() {
         : `<button class="btn small danger" type="button" id="delOne">Eliminar pozo</button>`}
     </div>`;
   updDiff(h); bindStrSec(h);
+  const updDetTotal = () => { $('detTotal').innerHTML = `Detonadores usados en este pozo: <b class="mono">${detsUsed(h)}</b>${h.reprime ? ` (${typeOf(h)?.n || 0} por tipo + ${reprimeExtra(h)} por reprimado)` : ''}`; };
+  $('f-rep').onchange = (e) => { h.reprime = e.target.checked; save(); pane.querySelector('.reprimeBox').hidden = !h.reprime; updDetTotal(); renderOverlay(); renderLegend(); renderTable(); renderPeek(); if (h.reprime) $('f-repobs').focus(); };
+  $('f-repn').oninput = (e) => { const v = num(e.target.value); h.reprimeN = v === null ? null : Math.max(0, Math.round(v)); save(); updDetTotal(); renderPeek(); };
+  $('f-repobs').oninput = (e) => { h.reprimeObs = e.target.value; save(); };
   $('f-drop').onchange = (e) => { const v = e.target.value; S.lastRep = [{ uid: h.uid, prev: h.drop ? { ...h.drop } : null }]; h.drop = v ? { p: v, n: h.drop?.n ?? null, at: new Date().toISOString() } : null; save(); renderAll(); };
   $('f-dropn').oninput = (e) => { if (!h.drop) return; const v = num(e.target.value); h.drop.n = v === null ? null : Math.max(0, Math.round(v)); save(); renderOverlay(); };
   const det = (i) => { while (h.dets.length <= i) h.dets.push({ tag: '', delay: null }); return h.dets[i]; };
@@ -1774,13 +1861,14 @@ function deleteHoles(list) {
 }
 
 function stats() {
-  const by = new Map(), byExpl = new Map(); let none = 0, dets = 0, mD = 0, mR = 0, nR = 0, tagsMissing = 0, delaysMissing = 0, kg = 0, nKg = 0, water = 0, tapado = 0, repasado = 0;
+  const by = new Map(), byExpl = new Map(); let none = 0, dets = 0, repN = 0, repDets = 0, mD = 0, mR = 0, nR = 0, tagsMissing = 0, delaysMissing = 0, kg = 0, nKg = 0, water = 0, tapado = 0, repasado = 0;
   for (const h of S.holes) {
     const t = typeOf(h);
     if (t) {
       by.set(t.key, (by.get(t.key) || 0) + 1); dets += t.n;
       for (const d of detsOf(h)) { if (!d.tag) tagsMissing++; if (d.delay === null) delaysMissing++; }
     } else none++;
+    if (h.reprime) { repN++; repDets += reprimeExtra(h); }
     if (h.dDesign !== null) mD += h.dDesign;
     if (h.dReal !== null) { mR += h.dReal; nR++; }
     if (h.charge !== null) { kg += h.charge; nKg++; const k = h.expl || 'Sin especificar'; byExpl.set(k, (byExpl.get(k) || 0) + h.charge); }
@@ -1789,14 +1877,14 @@ function stats() {
     if (h.state === 'repasado') repasado++;
   }
   const dupTags = [...tagCounts()].filter(([, c]) => c > 1).map(([k]) => k);
-  return { by, byExpl, none, dets, mD, mR, nR, tagsMissing, delaysMissing, kg, nKg, water, tapado, repasado, dupTags, total: S.holes.length };
+  return { by, byExpl, none, dets, detsType: dets, repN, repDets, used: dets + repDets, mD, mR, nR, tagsMissing, delaysMissing, kg, nKg, water, tapado, repasado, dupTags, total: S.holes.length };
 }
 function summaryHtml() {
   const s = stats();
   return `<div class="sectionGap"></div><p class="eyebrow">Resumen de la malla</p>
     <div class="stats">
       <div class="stat"><div class="v">${s.total}</div><div class="k">Pozos</div></div>
-      <div class="stat"><div class="v">${s.dets}</div><div class="k">Detonadores (según tipo)</div></div>
+      <div class="stat"><div class="v">${s.used}</div><div class="k">Detonadores usados (${s.detsType} por tipo + ${s.repDets} por reprimado)</div></div>
       <div class="stat"><div class="v">${fmt(s.mD)}</div><div class="k">Metros diseño</div></div>
       <div class="stat"><div class="v">${fmt(s.mR)}</div><div class="k">Metros reales (${s.nR} pozos medidos)</div></div>
       <div class="stat"><div class="v">${fmt(s.kg)}</div><div class="k">kg explosivo (${s.nKg} pozos)</div></div>
@@ -1806,6 +1894,7 @@ function summaryHtml() {
       <div class="stat"><div class="v">${s.water}</div><div class="k">Pozos con agua</div></div>
       <div class="stat"><div class="v">${s.tapado} / ${s.repasado}</div><div class="k">Tapados / repasados</div></div>
     </div>
+    <p class="hint">Detonadores por tipo: ${S.types.map(t => `${esc(t.name)} ${s.by.get(t.key) || 0} × ${t.n} = <span class="mono">${(s.by.get(t.key) || 0) * t.n}</span>`).join(' · ')}${s.repN ? ` · Reprimados ${s.repN} pozos (+<span class="mono">${s.repDets}</span>)` : ''}</p>
     ${s.byExpl.size ? `<p class="hint">${[...s.byExpl].map(([k, v]) => `${esc(k)}: <span class="mono">${fmt(v)} kg</span>`).join(' · ')}</p>` : ''}
     ${s.dupTags.length ? `<p class="tagWarn">Etiquetas repetidas: <span class="mono">${s.dupTags.map(esc).join(', ')}</span></p>` : ''}`;
 }
@@ -1815,7 +1904,7 @@ function chip(h) { const t = typeOf(h); return `<span class="chip">${symbolSvg(t
 function renderTypeFilter() {
   const f = $('fType'); const cur = f.value;
   f.innerHTML = `<option value="*">Todos los tipos</option><option value="">Sin tipo</option>` + S.types.map(t => `<option value="${esc(t.key)}">${esc(t.name)}</option>`).join('')
-    + `<option value="@agua">Con agua</option><option value="@tapado">Tapados</option><option value="@repasado">Repasados</option><option value="@pend">Con datos pendientes</option>`;
+    + `<option value="@agua">Con agua</option><option value="@tapado">Tapados</option><option value="@repasado">Repasados</option><option value="@reprim">Reprimados</option><option value="@pend">Con datos pendientes</option>`;
   f.value = cur && [...f.options].some(o => o.value === cur) ? cur : (cur === '' && f.dataset.ready ? '' : '*'); f.dataset.ready = '1';
 }
 function pending(h) { const ds = detsOf(h); return !typeOf(h) || ds.some(d => !d.tag || d.delay === null) || h.dReal === null; }
@@ -1826,6 +1915,7 @@ function renderTable() {
   const rows = S.holes.filter(h => {
     if (ft === '@agua') { if (!h.water) return false; }
     else if (ft === '@tapado' || ft === '@repasado') { if (h.state !== ft.slice(1)) return false; }
+    else if (ft === '@reprim') { if (!h.reprime) return false; }
     else if (ft === '@pend') { if (!pending(h)) return false; }
     else if (ft !== '*' && (typeOf(h) ? h.type : '') !== ft) return false;
     if (!q) return true;
@@ -2031,6 +2121,8 @@ document.addEventListener('keydown', (e) => {
   else if (e.key === 'v' || e.key === 'V') setMode('select');
   else if (e.key === 'a' || e.key === 'A') setMode('area');
   else if (e.key === 'n' || e.key === 'N') setMode('add');
+  else if (e.key === 'l' || e.key === 'L') setMode('lasso');
+  else if (e.key === 'r' || e.key === 'R') showTab(S.repMode ? 'pozo' : 'rep');
   else if (e.key === 's' || e.key === 'S') setMode('string');
   else if (e.key === 'Backspace' && S.mode === 'string') { undoStringAdd(); e.preventDefault(); }
 });
@@ -2054,7 +2146,7 @@ $('btnDemo').onclick = loadDemo;
 // ===================== Interfaz: barra de comandos, menús y panel desplegable =====================
 /** Preferencias de pantalla de este equipo (no viajan con el respaldo). */
 const UI_KEY = STORE_PREFIX + 'ui';
-const RAIL_CMDS = [['file', 'Archivo'], ['print', 'Imprimir'], ['select', 'Seleccionar'], ['area', 'Área'], ['string', 'String'], ['add', 'Agregar pozo'], ['zoomIn', 'Acercar'], ['zoomOut', 'Alejar'], ['zoomFit', 'Ajustar'], ['panel', 'Panel']];
+const RAIL_CMDS = [['file', 'Archivo'], ['print', 'Imprimir'], ['select', 'Seleccionar'], ['area', 'Área'], ['lasso', 'Lazo'], ['rep', 'Reparto'], ['string', 'String'], ['add', 'Agregar pozo'], ['zoomIn', 'Acercar'], ['zoomOut', 'Alejar'], ['zoomFit', 'Ajustar'], ['panel', 'Panel']];
 const UI = Object.assign({ rail: 'left', size: 'normal', labels: window.innerWidth >= 520, hide: [], panel: 'auto', autoOpen: true, open: false, pin: false, full: false }, safeParse(lsGet(UI_KEY)) || {});
 const saveUI = () => lsSet(UI_KEY, JSON.stringify(UI));
 function panelPos() { return UI.panel === 'auto' ? (window.innerWidth < 760 ? 'bottom' : 'side') : UI.panel; }
@@ -2063,7 +2155,7 @@ function applyUI() {
   app.dataset.rail = UI.rail; app.dataset.railsize = UI.size; app.dataset.labels = UI.labels ? '1' : '0';
   app.dataset.panel = panelPos(); app.dataset.open = UI.open ? '1' : '0'; app.dataset.pin = UI.pin ? '1' : '0'; app.dataset.full = UI.full ? '1' : '0';
   document.querySelectorAll('#rail [data-cmd]').forEach(b => { b.hidden = UI.hide.includes(b.dataset.cmd); });
-  $('rail').querySelector('[data-cmd="sep1"]').hidden = ['select', 'area', 'string', 'add'].every(c => UI.hide.includes(c));
+  $('rail').querySelector('[data-cmd="sep1"]').hidden = ['select', 'area', 'lasso', 'rep', 'string', 'add'].every(c => UI.hide.includes(c));
   $('rail').querySelector('[data-cmd="sep2"]').hidden = ['zoomIn', 'zoomOut', 'zoomFit'].every(c => UI.hide.includes(c));
   $('btnPanel').setAttribute('aria-expanded', String(UI.open));
   $('peek').setAttribute('aria-expanded', String(UI.open)); $('peek').hidden = UI.open;
@@ -2136,7 +2228,7 @@ function renderPeek() {
     t1.textContent = `${sel.length} pozos seleccionados`; t2.textContent = 'Asigna tipo, string, estado o carguío a todos'; lbl.textContent = 'Editar';
   } else {
     const s = stats();
-    t1.textContent = `${s.total} pozos · ${s.dets} detonadores · ${S.strings.length} strings`;
+    t1.textContent = `${s.total} pozos · ${s.used} detonadores usados · ${S.strings.length} strings`;
     t2.textContent = `Sin tipo ${s.none} · Etiquetas pendientes ${s.tagsMissing} · Retardos pendientes ${s.delaysMissing}`;
     lbl.textContent = 'Ver detalle';
   }
@@ -2258,7 +2350,7 @@ function reportRows() {
       td: h.tDesign ?? '', dd: dec(h.dDesign, 1), dr: dec(h.dReal, 2), diff: diff === null ? '' : (diff > 0 ? '+' : '') + dec(diff, 2),
       stem: dec(h.stem, 2), clen: dec(chargeLen(h), 2), expl: h.expl || '', kg: dec(h.charge, 1),
       water: h.water ? 'Sí' + (h.waterLvl !== null ? ' ' + dec(h.waterLvl, 1) + ' m' : '') : 'No',
-      state: stateName(h.state), prog: progOf(h)?.name || '', obs: (h.obs || '').replace(/\s+/g, ' ').trim(),
+      state: stateName(h.state), prog: progOf(h)?.name || '', reprim: h.reprime ? `Sí (+${reprimeExtra(h)})` : '', used: String(detsUsed(h)), obs: (h.obs || '').replace(/\s+/g, ' ').trim(),
     };
   });
 }
@@ -2271,7 +2363,8 @@ function summaryLines() {
     `Malla(s): ${groups.length ? groups.join(', ') : 'sin asignar'}`,
     `Fecha de emisión: ${nowCl()}`,
     `Pozos: ${s.total}  |  ` + S.types.map(t => `${t.name}: ${s.by.get(t.key) || 0}`).join('  |  ') + `  |  Sin tipo: ${s.none}`,
-    `Detonadores: ${s.dets}  |  Etiquetas pendientes: ${s.tagsMissing}  |  Retardos pendientes: ${s.delaysMissing}`,
+    `Detonadores usados: ${s.used} (por tipo ${s.detsType}: ` + S.types.map(t => `${t.name} ${s.by.get(t.key) || 0}x${t.n}`).join(', ') + `; reprimados ${s.repN} pozos +${s.repDets})`,
+    `Etiquetas pendientes: ${s.tagsMissing}  |  Retardos pendientes: ${s.delaysMissing}`,
     `Metros diseño: ${dec(s.mD, 1)} m  |  Metros reales: ${dec(s.mR, 1)} m (${s.nR} pozos medidos)`,
     `Explosivo total: ${dec(s.kg, 1)} kg (${s.nKg} pozos)` + (s.byExpl.size ? '  |  ' + [...s.byExpl].map(([k, v]) => `${k}: ${dec(v, 1)} kg`).join('  |  ') : ''),
     `Pozos con agua: ${s.water}  |  Tapados: ${s.tapado}  |  Repasados: ${s.repasado}`,
@@ -2298,8 +2391,34 @@ function buildTxt() {
     if (showDets) r.dets.forEach(d => out.push(ind + 'Det. ' + d));
     if (showObs && r.obs) out.push(ind + 'Obs.: ' + r.obs);
   }
+  const rp = reprimeList();
+  if (rp.length) {
+    out.push('', 'POZOS REPRIMADOS - COMENTARIOS', '-'.repeat(width));
+    for (const x of rp) { out.push(x.title); out.push(ind + (x.obs || 'Sin comentario.')); }
+  }
   out.push('-'.repeat(width), 'Profundidades, diferencia, taco y largo de carga en metros. L.carga = profundidad (real o diseño) - taco. Retardos en ms.', `Generado con blaster.lcv · ${nowCl()}`);
   return out.join('\r\n') + '\r\n';
+}
+/** Pozos reprimados con su comentario, en el orden del informe. */
+function reprimeList() {
+  const seq = seqIndex();
+  return sortedHoles().filter(h => h.reprime).map(h => {
+    const q = seq.get(h.uid);
+    return { title: `Pozo ${h.id}${h.group ? ' · ' + h.group : ''}${q ? ` · ${q.s.name} N° ${q.n}` : ''} · ${typeOf(h)?.name || 'sin tipo'} · +${reprimeExtra(h)} detonador(es) · total ${detsUsed(h)}`, obs: (h.reprimeObs || '').trim() };
+  });
+}
+/** Corta un texto en líneas que caben en el ancho indicado (PDF). */
+function wrapText(font, text, size, width) {
+  const out = [];
+  for (const para of W(text).split(/\n/)) {
+    let line = '';
+    for (const word of para.split(/\s+/).filter(Boolean)) {
+      const t = line ? line + ' ' + word : word;
+      if (font.widthOfTextAtSize(t, size) <= width) line = t; else { if (line) out.push(line); line = fitText(font, word, size, width); }
+    }
+    out.push(line);
+  }
+  return out;
 }
 function csvJoin(rows) {
   const q = (v) => { const s = String(v ?? ''); return /[;"\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
@@ -2309,7 +2428,7 @@ function buildCsv() {
   const maxN = Math.max(1, ...S.types.map(t => t.n)); const seq = seqIndex();
   const head = ['Página', 'Malla', 'ID pozo', 'String', 'N° secuencia', 'Tipo', 'N° detonadores'];
   for (let i = 1; i <= maxN; i++) head.push(`Det ${i} etiqueta`, `Det ${i} retardo (ms)`);
-  head.push('Tiempo diseño (ms)', 'Prof. diseño (m)', 'Prof. real (m)', 'Diferencia (m)', 'Taco (m)', 'Largo carga (m)', 'Explosivo', 'Carga (kg)', 'Agua', 'Altura agua (m)', 'Estado', 'Detonador depositado', 'Programador', 'Detonadores dejados', 'Observaciones', 'X plano', 'Y plano', 'Origen');
+  head.push('Tiempo diseño (ms)', 'Prof. diseño (m)', 'Prof. real (m)', 'Diferencia (m)', 'Taco (m)', 'Largo carga (m)', 'Explosivo', 'Carga (kg)', 'Agua', 'Altura agua (m)', 'Estado', 'Detonador depositado', 'Programador', 'Detonadores dejados', 'Reprimado', 'Det. agregados reprimado', 'Detonadores usados', 'Comentario reprimado', 'Observaciones', 'X plano', 'Y plano', 'Origen');
   const rows = [head];
   for (const h of sortedHoles()) {
     const t = typeOf(h); const ds = detsOf(h); const q = seq.get(h.uid);
@@ -2317,7 +2436,7 @@ function buildCsv() {
     for (let i = 0; i < maxN; i++) r.push(ds[i]?.tag || '', ds[i]?.delay ?? '');
     r.push(h.tDesign ?? '', dec(h.dDesign, 1), dec(h.dReal, 2), h.dReal !== null && h.dDesign !== null ? dec(h.dReal - h.dDesign, 2) : '',
       dec(h.stem, 2), dec(chargeLen(h), 2), h.expl || '', dec(h.charge, 1), h.water ? 'Sí' : 'No', dec(h.waterLvl, 2), stateName(h.state),
-      h.drop ? 'Sí' : 'No', progOf(h)?.name || '', h.drop ? dropCount(h) : '', h.obs || '', dec(h.x, 1), dec(h.y, 1), h.manual ? 'Manual' : 'Plano');
+      h.drop ? 'Sí' : 'No', progOf(h)?.name || '', h.drop ? dropCount(h) : '', h.reprime ? 'Sí' : 'No', h.reprime ? reprimeExtra(h) : '', detsUsed(h), h.reprimeObs || '', h.obs || '', dec(h.x, 1), dec(h.y, 1), h.manual ? 'Manual' : 'Plano');
     rows.push(r);
   }
   return csvJoin(rows);
@@ -2398,6 +2517,7 @@ async function buildPdf({ plan = true, report = true, rep = false } = {}) {
           if (h.water) page.drawCircle({ x, y: h.y + r * 0.7, size: m, color: hexRgb(MARK_WATER) });
           if (h.state === 'tapado') page.drawRectangle({ x: x - m, y: h.y - r * .25 - m * 2, width: m * 2, height: m * 2, color: hexRgb(MARK_TAPADO) });
           if (h.state === 'repasado') page.drawCircle({ x, y: h.y - r * .25 - m, size: m, color: hexRgb(MARK_REPASADO) });
+          if (h.reprime) { const cx = h.x - r * .2, cy = h.y + r * 2.05, fs = r * .85; page.drawCircle({ x: cx, y: cy, size: r * .62, color: hexRgb(MARK_REPRIME) }); page.drawText('R', { x: cx - bold.widthOfTextAtSize('R', fs) / 2, y: cy - fs * .35, size: fs, font: bold, color: rgb(1, 1, 1) }); }
         }
       }
       // Cuadro de simbología en la esquina inferior izquierda
@@ -2418,6 +2538,7 @@ async function buildPdf({ plan = true, report = true, rep = false } = {}) {
         page.drawCircle({ x: x0 + 10, y: y + 2.2, size: 2, color: hexRgb(MARK_WATER) }); page.drawText('Agua', { x: x0 + 15, y, size: 6, font });
         page.drawRectangle({ x: x0 + 42, y: y + .2, width: 4, height: 4, color: hexRgb(MARK_TAPADO) }); page.drawText('Tapado', { x: x0 + 49, y, size: 6, font });
         page.drawCircle({ x: x0 + 86, y: y + 2.2, size: 2, color: hexRgb(MARK_REPASADO) }); page.drawText('Repasado', { x: x0 + 91, y, size: 6, font });
+        page.drawCircle({ x: x0 + 128, y: y + 2.2, size: 2, color: hexRgb(MARK_REPRIME) }); page.drawText('Reprim.', { x: x0 + 133, y, size: 6, font });
       }
       y -= lh;
       if (strs.length) {
@@ -2429,7 +2550,7 @@ async function buildPdf({ plan = true, report = true, rep = false } = {}) {
           if (i % 2 === 1 || i === strs.length - 1) y -= lh;
         });
       }
-      page.drawText(W(`Detonadores: ${s.dets}   Explosivo: ${dec(s.kg, 1)} kg`), { x: x0 + 6, y, size: 6, font, color: rgb(0.25, 0.25, 0.25) }); y -= lh;
+      page.drawText(W(`Detonadores usados: ${s.used}   Explosivo: ${dec(s.kg, 1)} kg`), { x: x0 + 6, y, size: 6, font, color: rgb(0.25, 0.25, 0.25) }); y -= lh;
       page.drawText(W(`blaster.lcv · ${nowCl()}`), { x: x0 + 6, y, size: 5.5, font, color: rgb(0.4, 0.4, 0.4) });
     }
   }
@@ -2514,6 +2635,20 @@ function drawReport(doc, font, bold) {
     }
     y -= h;
     page.drawLine({ start: { x: M, y: y + LH - 2 }, end: { x: PW - M, y: y + LH - 2 }, thickness: 0.4, color: rule });
+  }
+  // Pozos reprimados con su comentario
+  const rp = reprimeList();
+  if (rp.length) {
+    const plainPage = () => { page = doc.addPage([PW, PH]); pages.push(page); y = PH - M; };
+    y -= 14; if (y < M + 60) plainPage();
+    page.drawText(W('POZOS REPRIMADOS - COMENTARIOS'), { x: M, y, size: 10, font: bold, color: ink }); y -= 14;
+    for (const x of rp) {
+      const lines = wrapText(font, x.obs || 'Sin comentario.', 7.5, avail - 14);
+      if (y - (lines.length + 1) * 10 < M + 10) plainPage();
+      page.drawText(fitText(bold, x.title, 7.8, avail), { x: M, y, size: 7.8, font: bold, color: ink }); y -= 10;
+      for (const l of lines) { page.drawText(l, { x: M + 12, y, size: 7.5, font, color: ink }); y -= 9.5; }
+      y -= 4;
+    }
   }
   y -= 4;
   if (y > M + 14) page.drawText(W('Profundidades, diferencia, taco y largo de carga en metros. Largo de carga = profundidad (real o diseño) - taco. Retardos en ms.'), { x: M, y, size: 6.5, font, color: grey });

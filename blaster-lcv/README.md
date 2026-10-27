@@ -16,7 +16,10 @@ Aplicación web para trabajar sobre planos PDF de mallas de perforación y trona
   - Editables (color, símbolo, cantidad) y se pueden agregar tipos nuevos.
 - **Por cada detonador**: etiqueta (código alfanumérico, se guarda en mayúsculas) y retardo en ms.
 - **Ficha del pozo**: tiempo de diseño (ms, con botón para usarlo como retardo), profundidad de diseño y real (con diferencia), estado (normal / tapado / repasado), agua (sí/no y altura), taco, largo de columna de carga calculado, tipo de explosivo, carga en kg, malla/disparo y observaciones.
-- **Reparto de detonadores a piso** (pestaña *Reparto*): mientras está abierta, el plano cambia a la vista de reparto y muestra los pozos donde ya se dejó el detonador, pintados con el color del programador que lo dejó (los pendientes en gris).
+- **Lazo**: comando de la barra para dibujar una forma libre alrededor de los pozos y seleccionarlos (también marca reparto y saca pozos de strings con *Quitar*).
+- **Pozo reprimado**: casilla en la ficha, con detonadores agregados (1 por defecto) y comentario que sale en el informe (sección *Pozos reprimados - comentarios*). Marca «R» morada en el plano y filtro en el listado.
+- **Detonadores usados**: total por tipo (Simple ×1, Doble ×2, Triple ×3) más los agregados por reprimado, en el resumen, la ficha del pozo, la barra inferior, los informes y el CSV.
+- **Reparto de detonadores a piso** (comando *Reparto* de la barra o pestaña *Reparto*; al repartir se puede asignar primado Simple, Doble o Triple): mientras está abierta, el plano cambia a la vista de reparto y muestra los pozos donde ya se dejó el detonador, pintados con el color del programador que lo dejó (los pendientes en gris).
   - Paleta de programadores: nombre y color de cada uno; se elige el activo en la barra de reparto sobre el plano.
   - Un toque marca el pozo (otro toque lo desmarca); con *Área* se marcan varios. *Deshacer* revierte la última marca.
   - Resumen de pozos y detonadores por programador, y pendientes. Plano de reparto en PDF o impreso; columnas *Detonador depositado* y *Programador* en los CSV e informes.
@@ -60,7 +63,7 @@ Aplicación web para trabajar sobre planos PDF de mallas de perforación y trona
 
 ## Instalar en Android e iOS
 
-- **Android:** `descargas/blaster-lcv-1.0.apk` (firmado, Android 5.0+). Instrucciones en [`descargas/INSTALAR.md`](descargas/INSTALAR.md). El código del contenedor está en `android/` y se compila con `android/build.sh` (herramientas de Android de Ubuntu; requiere la llave de firma).
+- **Android:** `descargas/blaster-lcv-1.1.apk` (firmado, Android 5.0+). Instrucciones en [`descargas/INSTALAR.md`](descargas/INSTALAR.md). El código del contenedor está en `android/` y se compila con `android/build.sh` (herramientas de Android de Ubuntu; requiere la llave de firma).
 - **iOS:** proyecto Xcode en `ios/` (se compila en una Mac), o instalar como app web desde Safari. Ver [`descargas/INSTALAR.md`](descargas/INSTALAR.md).
 
 ## Uso con y sin conexión
