@@ -58,6 +58,11 @@ Aplicación web para trabajar sobre planos PDF de mallas de perforación y trona
 | CSV de detonadores | Una fila por detonador en orden de string y secuencia: string, N°, pozo, etiqueta y retardo |
 | Respaldo JSON | Para mover el trabajo a otro equipo (Importar respaldo) |
 
+## Instalar en Android e iOS
+
+- **Android:** `descargas/blaster-lcv-1.0.apk` (firmado, Android 5.0+). Instrucciones en [`descargas/INSTALAR.md`](descargas/INSTALAR.md). El código del contenedor está en `android/` y se compila con `android/build.sh` (herramientas de Android de Ubuntu; requiere la llave de firma).
+- **iOS:** proyecto Xcode en `ios/` (se compila en una Mac), o instalar como app web desde Safari. Ver [`descargas/INSTALAR.md`](descargas/INSTALAR.md).
+
 ## Uso con y sin conexión
 
 - **Publicada en un servidor (https)**, por ejemplo GitHub Pages: al abrirla una vez con señal queda guardada en el equipo y luego abre sin internet. En el celular se puede **instalar** desde el menú del navegador ("Agregar a pantalla de inicio").

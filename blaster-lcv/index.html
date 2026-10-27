@@ -2159,6 +2159,10 @@ async function printReport(kind) {
       toast('En esta vista no se puede imprimir directo: se guardó el PDF para imprimirlo desde el equipo.', 6000);
       return;
     }
+    if (NATIVE === 'ios') { // iOS imprime el PDF directamente con el diálogo de impresión del sistema
+      window.webkit.messageHandlers.blaster.postMessage({ action: 'print', name: 'blaster.lcv - ' + baseName(), data: await toBase64(new Blob([bytes])) });
+      return;
+    }
     const doc = await pdfjsLib.getDocument({ data: bytes.slice(0) }).promise;
     const area = $('printArea'); area.innerHTML = ''; let landscape = true;
     const scale = doc.numPages > 30 ? 1.4 : 2.2;
@@ -2174,6 +2178,7 @@ async function printReport(kind) {
     let st = $('printPageStyle'); if (!st) { st = document.createElement('style'); st.id = 'printPageStyle'; document.head.appendChild(st); }
     st.textContent = `@media print { @page { size: ${landscape ? 'landscape' : 'auto'}; } }`;
     $('busy').hidden = true;
+    if (NATIVE === 'android') { window.AndroidBridge.print('blaster.lcv - ' + baseName()); return; }
     window.addEventListener('afterprint', () => { area.innerHTML = ''; }, { once: true });
     window.print();
   } catch (err) { console.error(err); toast('No se pudo preparar la impresión: ' + (err.message || err), 5000); }
@@ -2199,7 +2204,22 @@ document.querySelectorAll('.pop [data-exp]').forEach(b => b.onclick = async () =
   } catch (err) { console.error(err); toast('No se pudo exportar: ' + (err.message || err.code || err), 5000); }
 });
 function baseName() { return (S.fileName || 'malla').replace(/\.pdf$/i, '').replace(/[^\w\-]+/g, '_'); }
+/** App instalada (Android o iOS): el contenedor nativo guarda archivos e imprime. */
+const NATIVE = window.AndroidBridge ? 'android' : window.webkit?.messageHandlers?.blaster ? 'ios' : null;
+function mimeOf(name) { return { pdf: 'application/pdf', csv: 'text/csv', txt: 'text/plain', json: 'application/json' }[name.split('.').pop().toLowerCase()] || 'application/octet-stream'; }
+async function toBase64(blob) {
+  const buf = new Uint8Array(await blob.arrayBuffer()); let bin = '';
+  for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode.apply(null, buf.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
 async function saveFile(name, data) {
+  if (NATIVE) {
+    const blob = data instanceof Blob ? data : new Blob([data], { type: mimeOf(name) });
+    const b64 = await toBase64(blob);
+    if (NATIVE === 'android') window.AndroidBridge.saveFile(name, mimeOf(name), b64);
+    else window.webkit.messageHandlers.blaster.postMessage({ action: 'save', name, mime: mimeOf(name), data: b64 });
+    return;
+  }
   let dl = null;
   try { dl = window.claude?.use ? await window.claude.use('downloads') : null; } catch { dl = null; }
   if (dl) {
@@ -2580,7 +2600,7 @@ async function loadDemo() {
   renderPanel(); renderPeek();
   const net = () => { $('netState').hidden = navigator.onLine !== false; };
   window.addEventListener('online', net); window.addEventListener('offline', net); net();
-  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol) && !window.claude) {
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol) && !window.claude && !NATIVE) {
     navigator.serviceWorker.register('sw.js').catch(() => { /* sin modo offline instalable */ });
   }
   const last = await idbGet();
