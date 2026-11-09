@@ -128,8 +128,17 @@ button { cursor: pointer; }
 #overlay { position: absolute; inset: 0; overflow: visible; }
 #overlay text { font-family: var(--font-data); font-weight: 500; paint-order: stroke; stroke: #fff; stroke-linejoin: round; }
 #lassoSvg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
-#lassoPoly { fill: color-mix(in srgb, var(--accent) 14%, transparent); stroke: var(--accent); stroke-width: 2; stroke-dasharray: 6 4; stroke-linejoin: round; }
+#lassoBack { fill: color-mix(in srgb, #0d6b61 12%, transparent); stroke: #ffffff; stroke-width: 4; stroke-linejoin: round; }
+#lassoPoly { fill: none; stroke: #111111; stroke-width: 2; stroke-dasharray: 8 6; stroke-linejoin: round; }
 #stage.mode-lasso { cursor: crosshair; }
+#stage.mode-pen { cursor: crosshair; }
+#penSvg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+#penLive { fill: none; stroke-linejoin: round; stroke-linecap: round; }
+.penColors { display: flex; gap: 5px; }
+.penColors button { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--line); padding: 0; }
+.penColors button[aria-pressed="true"] { box-shadow: 0 0 0 3px var(--ink); }
+.penBar input[type=text] { border: 1px solid var(--line); background: var(--surface-2); border-radius: var(--radius); padding: 6px 8px; width: 150px; min-height: 36px; }
+#penErase[aria-pressed="true"] { background: var(--danger); color: #fff; border-color: var(--danger); }
 #selRect { position: absolute; border: 1.5px dashed var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); pointer-events: none; }
 
 .seg { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
@@ -143,6 +152,7 @@ button { cursor: pointer; }
   position: absolute; left: 10px; top: 10px; z-index: 5; max-width: calc(100% - 20px); display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
   background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; box-shadow: 0 1px 4px rgba(0,0,0,.12); font-size: .88rem;
 }
+.strBar .sbCur { font-size: .82rem; color: var(--muted); font-weight: 600; }
 .strBar .sbFill { display: inline-flex; align-items: center; gap: 5px; font-weight: 500; min-height: 36px; }
 .repPrimeBar { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .repPrime button { padding: 6px 10px; font-size: .84rem; }
@@ -157,6 +167,13 @@ button { cursor: pointer; }
 .progRow input[type=text] { border: 1px solid var(--line); background: var(--surface-2); border-radius: var(--radius); padding: 5px 8px; min-width: 0; width: 100%; font-weight: 600; }
 .progRow input[type=color] { width: 40px; height: 32px; border: 1px solid var(--line); border-radius: var(--radius); padding: 1px; background: var(--surface); }
 .palette { display: flex; flex-wrap: wrap; gap: 6px; }
+.palette.quick { gap: 4px; }
+.palette.quick button { width: 24px; height: 24px; }
+.markRow { display: grid; grid-template-columns: 14px minmax(0, 1fr) 44px; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.markRow .mk { width: 14px; height: 14px; border-radius: 50%; display: inline-block; }
+.markRow .mkName { font-weight: 600; }
+.markRow input[type=color] { width: 40px; height: 30px; border: 1px solid var(--line); border-radius: var(--radius); padding: 1px; background: var(--surface); }
+.markRow .palette { grid-column: 1 / 4; }
 .palette button { width: 30px; height: 30px; border-radius: 50%; border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--line); padding: 0; }
 .palette button[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--ink); }
 .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 6px; }
@@ -267,6 +284,7 @@ button { cursor: pointer; }
 .typePick svg { width: 20px; height: 20px; }
 .typePick kbd { font: 500 .7rem var(--font-data); color: var(--muted); }
 .hint { color: var(--muted); font-size: .88rem; }
+.seqIn { width: 96px !important; font-size: 1.15rem; font-weight: 600; }
 .seqNo { font-size: 1.5rem; font-weight: 500; line-height: 36px; }
 .strList { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
 .strRow { display: grid; grid-template-columns: 22px 40px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 8px; border: 1px solid var(--line); border-radius: var(--radius); }
@@ -386,6 +404,8 @@ tbody tr.sel { background: color-mix(in srgb, var(--accent) 16%, var(--surface))
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="6" cy="7" r="2.6" fill="currentColor"/><circle cx="18" cy="7" r="2.6"/><circle cx="6" cy="17" r="2.6"/><circle cx="18" cy="17" r="2.6" fill="currentColor"/><path d="M9.5 12h5M12 9.5v5"/></svg><span>Reparto</span></button>
     <button class="rb" type="button" data-cmd="string" data-mode="string" aria-pressed="false" title="Unir pozos en secuencia (S)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="4.5" cy="18" r="2.2"/><circle cx="12" cy="6" r="2.2"/><circle cx="19.5" cy="16.5" r="2.2"/><path d="M5.8 16l5-8M13.4 8l4.9 6.7"/></svg><span>String</span></button>
+    <button class="rb" type="button" data-cmd="pen" data-mode="pen" aria-pressed="false" title="Lápiz: dibujar líneas o demarcar zonas de trabajo (P)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M4 20l1.2-4.6L16 4.6a2 2 0 012.8 0l.6.6a2 2 0 010 2.8L8.6 18.8z"/><path d="M14 6.6l3.4 3.4"/></svg><span>Lápiz</span></button>
     <button class="rb" type="button" data-cmd="add" data-mode="add" aria-pressed="false" title="Agregar un pozo que no se detectó (N)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M8 12h8"/></svg><span>Agregar pozo</span></button>
     <hr data-cmd="sep2">
@@ -409,7 +429,8 @@ tbody tr.sel { background: color-mix(in srgb, var(--accent) 16%, var(--surface))
         <svg id="overlay" xmlns="http://www.w3.org/2000/svg"></svg>
       </div>
       <div id="selRect" hidden></div>
-      <svg id="lassoSvg" hidden><polygon id="lassoPoly" points=""/></svg>
+      <svg id="penSvg" hidden><polyline id="penLive" points=""/></svg>
+      <svg id="lassoSvg" hidden><polygon id="lassoBack" points=""/><polygon id="lassoPoly" points=""/></svg>
     </div>
     <div class="strBar" id="strBar" hidden>
       <span id="sbName"></span>
@@ -420,6 +441,19 @@ tbody tr.sel { background: color-mix(in srgb, var(--accent) 16%, var(--surface))
       <label class="sbFill" title="Al tocar un pozo, agrega también los que quedan entre el último del string y ese pozo"><input type="checkbox" id="sbFill"> Tramo automático</label>
       <button class="btn small" type="button" id="sbUndo" title="Revierte la última acción del string (Retroceso)">Deshacer</button>
       <button class="btn small" type="button" id="sbNew">Nuevo string</button>
+      <span class="sbCur" id="sbCursor"></span>
+      <button class="btn small" type="button" id="sbHead" title="Los pozos que toques se insertan antes del primero">Al inicio</button>
+      <button class="btn small" type="button" id="sbTail" title="Los pozos que toques se agregan al final">Al final</button>
+    </div>
+    <div class="strBar penBar" id="penBar" hidden>
+      <b class="rbTitle">Lápiz</b>
+      <div class="penColors" id="penColors" role="group" aria-label="Color"></div>
+      <div class="seg" role="group" aria-label="Grosor" id="penWidths"></div>
+      <div class="seg" role="group" aria-label="Tipo de trazo"><button type="button" data-pkind="line">Línea</button><button type="button" data-pkind="zone">Zona</button></div>
+      <input type="text" id="penLabel" placeholder="Nombre (opcional)" aria-label="Nombre del próximo trazo">
+      <button class="btn small" type="button" id="penErase" aria-pressed="false" title="Toca un trazo para borrarlo">Borrador</button>
+      <button class="btn small" type="button" id="penUndo">Deshacer</button>
+      <button class="btn small" type="button" id="penClear">Borrar todo</button>
     </div>
     <div class="strBar repBar" id="repBar" hidden>
       <b class="rbTitle">Reparto</b>
@@ -427,6 +461,13 @@ tbody tr.sel { background: color-mix(in srgb, var(--accent) 16%, var(--surface))
       <div class="repPrimeBar" id="repPrimeBar"></div>
       <button class="btn small" type="button" id="rbUndo" title="Revierte la última marca">Deshacer</button>
       <button class="btn small" type="button" id="rbExit" title="Volver a la vista normal">Salir</button>
+    </div>
+    <div class="modal" id="choiceDlg" hidden>
+      <div class="dlg" role="dialog" aria-modal="true" aria-labelledby="choiceTitle">
+        <h2 id="choiceTitle"></h2>
+        <p id="choiceText" class="hint"></p>
+        <div class="rowBtns" id="choiceBtns"></div>
+      </div>
     </div>
     <div class="modal" id="strAsk" hidden>
       <div class="dlg" role="dialog" aria-modal="true" aria-labelledby="askTitle">
@@ -565,7 +606,14 @@ const STATES = [
   { key: 'tapado', name: 'Tapado' },
   { key: 'repasado', name: 'Repasado' },
 ];
-const MARK_WATER = '#1597d4', MARK_TAPADO = '#222222', MARK_REPASADO = '#1f9a4c', MARK_REPRIME = '#7c3aed';
+/** Colores de las marcas (configurables en Vista). */
+let MARK_WATER = '#1597d4', MARK_TAPADO = '#222222', MARK_REPASADO = '#1f9a4c', MARK_REPRIME = '#7c3aed';
+const MARK_DEFAULTS = { reprime: '#7c3aed', water: '#1597d4', tapado: '#222222', repasado: '#1f9a4c' };
+const QUICK_COLORS = ['#1f6fd1', '#0ea5e9', '#14b8a6', '#16a34a', '#84cc16', '#eab308', '#e2700f', '#cf2546', '#d946ef', '#7c3aed', '#64748b', '#111111'];
+function applyMarkColors() {
+  const c = S.settings.colors || MARK_DEFAULTS;
+  MARK_REPRIME = c.reprime; MARK_WATER = c.water; MARK_TAPADO = c.tapado; MARK_REPASADO = c.repasado;
+}
 const EXPLOSIVE_HINTS = ['ANFO', 'ANFO pesado', 'Emulsión', 'Emulsión gasificada', 'Booster'];
 const STRING_COLORS = ['#7c3aed', '#0f8f80', '#c2410c', '#2563eb', '#be185d', '#4d7c0f', '#a16207', '#0e7490', '#9333ea', '#b91c1c', '#475569', '#15803d'];
 /** Información que se puede mostrar junto a cada pozo (en pantalla y en el plano PDF). */
@@ -605,10 +653,12 @@ const DEFAULT_SETTINGS = {
   label: { seq: true, tag: true, delay: true, dReal: false, stem: false, charge: false, expl: false },
   showMarks: true, showUnassigned: true, showStrings: true, autoString: true, stringMax: 400,
   stringFill: true, stringFillBy: 'line', stringPrime: true, showDrops: false, repPrime: '',
+  pen: { color: '#e11d48', w: 2, kind: 'line', erase: false }, showDraws: true,
+  colors: { reprime: '#7c3aed', water: '#1597d4', tapado: '#222222', repasado: '#1f9a4c' },
   reportCols: Object.fromEntries(REPORT_COLS.map(c => [c.k, true])), reportSort: 'id',
 };
 function normSettings(x = {}) {
-  const o = { ...DEFAULT_SETTINGS, ...x, label: { ...DEFAULT_SETTINGS.label, ...(x.label || {}) }, reportCols: { ...DEFAULT_SETTINGS.reportCols, ...(x.reportCols || {}) } };
+  const o = { ...DEFAULT_SETTINGS, ...x, pen: { ...DEFAULT_SETTINGS.pen, ...(x.pen || {}) }, colors: { ...DEFAULT_SETTINGS.colors, ...(x.colors || {}) }, label: { ...DEFAULT_SETTINGS.label, ...(x.label || {}) }, reportCols: { ...DEFAULT_SETTINGS.reportCols, ...(x.reportCols || {}) } };
   if (x.showTags !== undefined && !x.label) { o.label.tag = !!x.showTags; o.label.delay = x.showDelay !== false; }
   delete o.showTags; delete o.showDelay;
   return o;
@@ -625,6 +675,9 @@ const S = {
   settings: normSettings(),
   strings: [],         // {id, name, color, start, holes: [uid en orden de etiquetado]}
   strOp: 'add',        // modo String: 'add' agrega pozos, 'remove' los saca
+  strCursor: null,     // punto de inserción en el string activo: {sid, after: uid | null (al inicio)}
+  draws: [],           // dibujos del lápiz: {id, page, color, w (grosor), kind: 'line' | 'zone', pts: [[x, y] en coordenadas de página], label}
+  lastDraw: null,      // último trazo agregado o borrado, para deshacer
   progs: [],           // programadores del reparto: {id, name, color}
   activeProg: null,
   repMode: false,      // vista de reparto (pestaña Reparto abierta)
@@ -685,6 +738,7 @@ function loadStrings(src) {
   S.strings = (Array.isArray(src.strings) ? src.strings : []).map((x, i) => ({
     id: x.id || 's' + i, name: x.name || 'S' + (i + 1), color: x.color || STRING_COLORS[i % STRING_COLORS.length],
     start: Number.isFinite(+x.start) ? +x.start : 1, holes: (x.holes || []).filter(u => uids.has(u)),
+    jumps: x.jumps && typeof x.jumps === 'object' ? { ...x.jumps } : {},
   }));
   S.activeString = S.strings.some(x => x.id === src.activeString) ? src.activeString : (S.strings[0]?.id ?? null);
 }
@@ -693,14 +747,35 @@ function newString() {
   let n = S.strings.length + 1; while (S.strings.some(x => x.name === 'S' + n)) n++;
   const used = new Set(S.strings.map(x => x.color.toLowerCase()));
   const color = STRING_COLORS.find(c => !used.has(c)) || STRING_COLORS[S.strings.length % STRING_COLORS.length];
-  const st = { id: 's' + Date.now().toString(36) + n, name: 'S' + n, color, start: 1, holes: [] };
+  const st = { id: 's' + Date.now().toString(36) + n, name: 'S' + n, color, start: 1, holes: [], jumps: {} };
   S.strings.push(st); S.activeString = st.id; return st;
 }
-/** uid -> {s, i, n}: string, posición y N° de secuencia (inicio del string + posición). */
+/**
+ * N° de secuencia de cada pozo del string: parte en «Inicia en N°» y sigue de uno en uno.
+ * Un N° fijado a mano en un pozo (salto) reinicia la cuenta desde ese pozo.
+ */
+function seqNumbers(st) {
+  const out = [], j = st.jumps || {}; let n = st.start;
+  for (const u of st.holes) { if (j[u] !== undefined) n = j[u]; out.push(n); n++; }
+  return out;
+}
+function noAt(st, i) { return seqNumbers(st)[i]; }
+function lastNo(st) { const n = seqNumbers(st); return n.length ? n[n.length - 1] : st.start - 1; }
+/** uid -> {s, i, n}: string, posición y N° de secuencia. */
 function seqIndex() {
   const m = new Map();
-  for (const st of S.strings) st.holes.forEach((u, i) => m.set(u, { s: st, i, n: st.start + i }));
+  for (const st of S.strings) { const nums = seqNumbers(st); st.holes.forEach((u, i) => m.set(u, { s: st, i, n: nums[i] })); }
   return m;
+}
+/** Dónde se insertan los pozos nuevos del string activo: al final, o a continuación de un pozo elegido. */
+function insertIndex(st) {
+  const c = S.strCursor; if (!c || c.sid !== st.id) return st.holes.length;
+  if (c.after === null) return 0;
+  const i = st.holes.indexOf(c.after); return i < 0 ? st.holes.length : i + 1;
+}
+function anchorUid(st) {
+  const c = S.strCursor; if (c && c.sid === st.id) return c.after;
+  return st.holes.length ? st.holes[st.holes.length - 1] : null;
 }
 function stringOf(uid) { return S.strings.find(x => x.holes.includes(uid)) || null; }
 function removeFromStrings(uids) { const set = new Set(uids); S.strings.forEach(x => { x.holes = x.holes.filter(u => !set.has(u)); }); }
@@ -711,7 +786,7 @@ function appendToString(h, st) {
   st.holes.push(h.uid); primeSimple(h);
   const max = S.settings.stringMax;
   if (st.holes.length > max) toast(`${st.name} supera el máximo de ${max} pozos.`, 4000);
-  else toast(`Pozo ${h.id} → ${st.name} N° ${st.start + st.holes.length - 1}${cur ? ` (movido desde ${cur.name})` : ''}`);
+  else toast(`Pozo ${h.id} → ${st.name} N° ${lastNo(st)}${cur ? ` (movido desde ${cur.name})` : ''}`);
   return true;
 }
 /** Modo String: cada toque agrega el pozo al final del string activo; tocar el último lo quita. */
@@ -747,22 +822,35 @@ function stringClick(h, single = false) {
   if (S.stringAsk && activeStr()?.holes.length) { askString(h, single); return; }
   S.stringAsk = false;
   const st = activeStr() || newString();
-  const i = st.holes.indexOf(h.uid);
-  if (i >= 0 && i === st.holes.length - 1) { removeHolesFromStrings([h]); toast(`Pozo ${h.id} quitado de ${st.name}.`); }
-  else if (i >= 0) toast(`El pozo ${h.id} ya está en ${st.name} (N° ${st.start + i}). Para sacarlo usa «Quitar».`);
-  else {
-    const lastUid = st.holes[st.holes.length - 1]; const last = lastUid !== undefined ? S.holes.find(x => x.uid === lastUid) : null;
-    const run = !single && S.settings.stringFill && last && last.page === h.page ? holesBetween(last, h) : [];
-    const added = [], primed = []; let moved = 0;
+  const i = st.holes.indexOf(h.uid), anc = anchorUid(st);
+  if (i >= 0 && h.uid === anc) {
+    // Tocar el último pozo agregado lo quita; la inserción sigue desde el anterior.
+    removeHolesFromStrings([h]);
+    if (S.strCursor?.sid === st.id) S.strCursor.after = i > 0 ? st.holes[i - 1] : null;
+    toast(`Pozo ${h.id} quitado de ${st.name}.`);
+  } else if (i >= 0) {
+    // Pozo que ya está en el string: desde ahora los pozos nuevos se insertan a continuación de él.
+    S.strCursor = { sid: st.id, after: h.uid };
+    toast(`Continuando desde el pozo ${h.id} (N° ${noAt(st, i)}): los pozos que toques se insertan a continuación.`, 4000);
+  } else {
+    const other = stringOf(h.uid);
+    if (other && other !== st && !single && other.holes.length > 1 && (other.holes[0] === h.uid || other.holes[other.holes.length - 1] === h.uid)) { askJoin(h, other, st); return; }
+    const anchor = anc !== null ? S.holes.find(x => x.uid === anc) : null;
+    let skipped = 0;
+    const run = (!single && S.settings.stringFill && anchor && anchor.page === h.page ? holesBetween(anchor, h) : [])
+      .filter(x => { const o = stringOf(x.uid); if (o && o !== st) { skipped++; return false; } return o !== st; });
+    const added = [], primed = []; let moved = 0, at = insertIndex(st);
     for (const x of [...run, h]) {
-      if (st.holes.includes(x.uid)) continue;
-      const cur = stringOf(x.uid); if (cur) { cur.holes = cur.holes.filter(u => u !== x.uid); moved++; }
-      st.holes.push(x.uid); added.push(x.uid);
+      const cur = stringOf(x.uid); if (cur === st) continue;
+      if (cur) { cur.holes = cur.holes.filter(u => u !== x.uid); moved++; }
+      st.holes.splice(at++, 0, x.uid); added.push(x.uid);
       if (primeSimple(x)) primed.push(x.uid);
     }
+    if (S.strCursor?.sid === st.id) S.strCursor = st.holes[st.holes.length - 1] === h.uid ? null : { sid: st.id, after: h.uid };
     S.lastAdd = { kind: 'add', sid: st.id, uids: added, primed };
-    const n1 = st.start + st.holes.length - added.length, n2 = st.start + st.holes.length - 1;
-    toast((added.length > 1 ? `${added.length} pozos agregados a ${st.name} (N° ${n1}–${n2})` : `Pozo ${h.id} → ${st.name} N° ${n2}`) + (moved ? ` · ${moved} movido(s) desde otro string` : ''));
+    const nums = seqNumbers(st), n1 = nums[st.holes.indexOf(added[0])], n2 = nums[st.holes.indexOf(h.uid)];
+    toast((added.length > 1 ? `${added.length} pozos agregados a ${st.name} (N° ${n1}–${n2})` : `Pozo ${h.id} → ${st.name} N° ${n2}`)
+      + (skipped ? ` · ${skipped} saltado(s) por estar en otro string` : '') + (moved ? ` · ${moved} movido(s) desde otro string` : ''), 3500);
     if (st.holes.length > S.settings.stringMax) toast(`${st.name} supera el máximo de ${S.settings.stringMax} pozos.`, 4000);
   }
   S.sel.clear(); S.sel.add(h.uid); S.confirm = null; save(); showTab('pozo'); renderAll(); focusFirstEmpty();
@@ -778,6 +866,36 @@ function removeHolesFromStrings(list) {
   removeFromStrings(items.map(x => x.uid));
   S.lastAdd = { kind: 'remove', items };
   return items.length;
+}
+/** Une el string «other» al string «st», a continuación del punto de inserción (o al final). */
+function joinStrings(st, other, reverse) {
+  const add = reverse ? other.holes.slice().reverse() : other.holes.slice();
+  const at = insertIndex(st);
+  st.holes.splice(at, 0, ...add);
+  S.strings = S.strings.filter(x => x !== other);
+  if (S.strCursor?.sid === other.id || S.strCursor?.sid === st.id) S.strCursor = null;
+  S.activeString = st.id; S.lastAdd = null;
+  save(); renderAll();
+  toast(`${other.name} se unió a ${st.name}: ahora tiene ${st.holes.length} pozos (${stringRange(st)}).`, 4000);
+}
+/** Tocar el primer o último pozo de otro string: unirlo al string activo, o mover solo ese pozo. */
+function askJoin(h, other, st) {
+  const reverse = other.holes[other.holes.length - 1] === h.uid;
+  choice(`¿Unir ${other.name} con ${st.name}?`,
+    `El pozo <b class="mono">${esc(h.id)}</b> es el ${reverse ? 'último' : 'primer'} pozo de <b style="color:${other.color}">${esc(other.name)}</b> (${other.holes.length} pozos). Puedes unir ese string completo a continuación de <b style="color:${st.color}">${esc(st.name)}</b>${reverse ? ', en sentido inverso' : ''}, o mover solo este pozo.`,
+    [[`Unir ${other.name} a ${st.name}`, 'primary', () => joinStrings(st, other, reverse)],
+     ['Mover solo este pozo', '', () => stringClick(h, true)],
+     ['Cancelar', '', null]]);
+}
+/** Diálogo con varias opciones (botones), sobre el plano. */
+function choice(title, html, buttons) {
+  const dlg = $('choiceDlg'); $('choiceTitle').textContent = title; $('choiceText').innerHTML = html;
+  const box = $('choiceBtns'); box.innerHTML = '';
+  for (const [label, cls, fn] of buttons) {
+    const b = document.createElement('button'); b.type = 'button'; b.className = 'btn' + (cls ? ' ' + cls : ''); b.textContent = label;
+    b.onclick = () => { dlg.hidden = true; if (fn) fn(); }; box.appendChild(b);
+  }
+  dlg.hidden = false; box.firstChild?.focus();
 }
 /** Deshace la última acción de string: un tramo agregado o pozos quitados. */
 function undoStringAdd() {
@@ -803,7 +921,7 @@ function undoStringAdd() {
 function stringRemoveClick(h) {
   const st = stringOf(h.uid);
   if (!st) { toast(`El pozo ${h.id} no está en ningún string.`); return; }
-  const n = st.start + st.holes.indexOf(h.uid);
+  const n = noAt(st, st.holes.indexOf(h.uid));
   removeHolesFromStrings([h]);
   S.sel.clear(); S.sel.add(h.uid); save(); renderAll();
   toast(`Pozo ${h.id} (N° ${n}) quitado de ${st.name}. Los siguientes se renumeran.`);
@@ -819,7 +937,7 @@ function askString(h, single) {
   const st = activeStr(); const dlg = $('strAsk');
   const used = new Set(S.strings.map(x => x.color.toLowerCase()));
   const nextColor = STRING_COLORS.find(c => !used.has(c)) || STRING_COLORS[S.strings.length % STRING_COLORS.length];
-  const contStart = S.settings.continuous ? Math.max(...S.strings.map(x => x.start + x.holes.length)) : 1;
+  const contStart = S.settings.continuous ? Math.max(...S.strings.map(x => lastNo(x) + 1)) : 1;
   $('askText').innerHTML = `Tocaste el pozo <b class="mono">${esc(h.id)}</b>. El string activo es <b style="color:${st.color}">${esc(st.name)}</b> (${stringRange(st)}, ${st.holes.length} pozos).`;
   $('askCont').innerHTML = `<span class="sw" style="background:${st.color}"></span>Continuar ${esc(st.name)}`;
   $('askNew').innerHTML = `<span class="sw" style="background:${nextColor}"></span>Iniciar string nuevo`;
@@ -907,13 +1025,68 @@ function renderRep() {
   if ($('clrRepYes')) $('clrRepYes').onclick = () => { S.lastRep = S.holes.filter(h => h.drop).map(h => ({ uid: h.uid, prev: { ...h.drop } })); S.holes.forEach(h => { h.drop = null; }); S.confirm = null; done(); toast('Reparto borrado. «Deshacer» en la barra de reparto lo recupera.'); };
 }
 
+function renderPenBar() {
+  const bar = $('penBar'); bar.hidden = S.mode !== 'pen' || !S.vp; if (bar.hidden) return;
+  const pen = S.settings.pen;
+  $('penColors').innerHTML = PEN_COLORS.map(c => `<button type="button" data-pcol="${c}" style="background:${c}" aria-pressed="${c === pen.color}" aria-label="Color ${c}"></button>`).join('');
+  $('penWidths').innerHTML = PEN_WIDTHS.map(([w, n]) => `<button type="button" data-pw="${w}" aria-pressed="${w === pen.w}">${n}</button>`).join('');
+  document.querySelectorAll('[data-pkind]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.pkind === pen.kind && !pen.erase)));
+  $('penErase').setAttribute('aria-pressed', String(!!pen.erase));
+  $('penColors').querySelectorAll('[data-pcol]').forEach(b => b.onclick = () => { pen.color = b.dataset.pcol; pen.erase = false; save(); renderPenBar(); });
+  $('penWidths').querySelectorAll('[data-pw]').forEach(b => b.onclick = () => { pen.w = +b.dataset.pw; save(); renderPenBar(); });
+}
+document.querySelectorAll('[data-pkind]').forEach(b => b.onclick = () => { S.settings.pen.kind = b.dataset.pkind; S.settings.pen.erase = false; save(); renderPenBar(); toast(b.dataset.pkind === 'zone' ? 'Zona: dibuja el contorno; al soltar se cierra y se sombrea.' : 'Línea: dibuja con el dedo o el mouse.'); });
+$('penErase').onclick = () => { S.settings.pen.erase = !S.settings.pen.erase; save(); renderPenBar(); if (S.settings.pen.erase) toast('Borrador: toca un trazo o una zona para borrarlo.'); };
+$('penUndo').onclick = () => {
+  const ld = S.lastDraw; if (!ld) { toast('No hay trazos para deshacer.'); return; }
+  if (ld.kind === 'add') S.draws = S.draws.filter(d => d.id !== ld.d.id); else S.draws.push(ld.d);
+  S.lastDraw = null; save(); renderOverlay(); toast(ld.kind === 'add' ? 'Se quitó el último trazo.' : 'Se recuperó el trazo borrado.');
+};
+$('penClear').onclick = () => {
+  const n = S.draws.filter(d => d.page === S.pageNum).length; if (!n) { toast('No hay dibujos en esta página.'); return; }
+  choice('¿Borrar todos los dibujos?', `Se borran los ${n} trazos y zonas de esta página.`, [['Borrar', 'danger solid', () => { S.draws = S.draws.filter(d => d.page !== S.pageNum); S.lastDraw = null; save(); renderOverlay(); toast('Dibujos borrados.'); }], ['Cancelar', '', null]]);
+};
+/** Trazo terminado (puntos en pantalla del área del plano): se guarda en coordenadas de página. */
+function finishPen(pts) {
+  const pen = S.settings.pen;
+  const simp = []; for (const q of pts) { const l = simp[simp.length - 1]; if (!l || Math.hypot(q.x - l.x, q.y - l.y) >= 2) simp.push(q); }
+  if (simp.length < 2) return;
+  const d = { id: 'd' + Date.now().toString(36), page: S.pageNum, color: pen.color, w: pen.w, kind: pen.kind === 'zone' && simp.length > 2 ? 'zone' : 'line', label: $('penLabel').value.trim(),
+    pts: simp.map(q => { const w = worldPt(q.x, q.y); const pp = toPdf(w.x, w.y); return [+pp.x.toFixed(2), +pp.y.toFixed(2)]; }) };
+  S.draws.push(d); S.lastDraw = { kind: 'add', d }; $('penLabel').value = '';
+  save(); renderOverlay();
+}
+/** Borrador: quita el trazo o la zona más cercana al toque. */
+function eraseAt(wx, wy) {
+  const tol = Math.max(10 / S.z, S.r * 1.2); let best = null, bd = tol;
+  for (const d of S.draws) {
+    if (d.page !== S.pageNum) continue;
+    const pts = d.pts.map(([x, y]) => { const [a, b] = S.vp.convertToViewportPoint(x, y); return { x: a, y: b }; });
+    if (d.kind === 'zone' && inPolygon({ x: wx, y: wy }, pts)) { bd = 0; best = d; break; }
+    for (let i = 1; i < pts.length; i++) { const dd = segDist(wx, wy, pts[i - 1], pts[i]); if (dd < bd) { bd = dd; best = d; } }
+  }
+  if (!best) { toast('No hay un trazo en ese punto.'); return; }
+  S.draws = S.draws.filter(d => d !== best); S.lastDraw = { kind: 'del', d: best }; save(); renderOverlay(); toast('Trazo borrado. «Deshacer» lo recupera.');
+}
+function segDist(px, py, a, b) {
+  const vx = b.x - a.x, vy = b.y - a.y, L = vx * vx + vy * vy; let t = L ? ((px - a.x) * vx + (py - a.y) * vy) / L : 0; t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - (a.x + t * vx), py - (a.y + t * vy));
+}
+
 function renderStrBar() {
   const bar = $('strBar'); bar.hidden = S.mode !== 'string'; if (bar.hidden) return;
   const st = activeStr();
   $('sbName').innerHTML = st ? `<span class="sw" style="background:${st.color}"></span><b>${esc(st.name)}</b> <span class="mono">${stringRange(st)} · ${st.holes.length}/${S.settings.stringMax}</span>` : 'Sin string';
   $('sbFill').checked = S.settings.stringFill;
+  const c = S.strCursor && st && S.strCursor.sid === st.id ? S.strCursor : null;
+  let txt = 'Agregando al final';
+  if (c && c.after === null) txt = 'Insertando al inicio';
+  else if (c) { const i = st.holes.indexOf(c.after); const hh = S.holes.find(x => x.uid === c.after); txt = i >= 0 ? `Insertando después del pozo ${hh?.id ?? ''} (N° ${noAt(st, i)})` : 'Agregando al final'; }
+  $('sbCursor').textContent = txt;
 }
-function stringRange(st) { return st.holes.length ? `N° ${st.start}–${st.start + st.holes.length - 1}` : 'vacío'; }
+$('sbHead').onclick = () => { const st = activeStr(); if (!st) return; S.strCursor = { sid: st.id, after: null }; renderStrBar(); toast(`Los pozos que toques se insertan al inicio de ${st.name}.`); };
+$('sbTail').onclick = () => { S.strCursor = null; renderStrBar(); toast('Los pozos que toques se agregan al final del string.'); };
+function stringRange(st) { const n = seqNumbers(st); return n.length ? `N° ${n[0]}–${n[n.length - 1]}` : 'vacío'; }
 
 // ===================== Reparto de detonadores =====================
 const PROG_COLORS = ['#0ea5e9', '#f59e0b', '#10b981', '#e11d48', '#8b5cf6', '#84cc16', '#f97316', '#14b8a6', '#d946ef', '#64748b', '#a16207', '#2563eb'];
@@ -982,7 +1155,7 @@ function save() {
   if (!S.docKey || S.demo) return;
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    lsSet(STORE_PREFIX + S.docKey, JSON.stringify({ fileName: S.fileName, holes: S.holes, types: S.types, settings: S.settings, strings: S.strings, activeString: S.activeString, progs: S.progs, activeProg: S.activeProg, savedAt: new Date().toISOString() }));
+    lsSet(STORE_PREFIX + S.docKey, JSON.stringify({ fileName: S.fileName, holes: S.holes, types: S.types, settings: S.settings, strings: S.strings, activeString: S.activeString, progs: S.progs, activeProg: S.activeProg, draws: S.draws, savedAt: new Date().toISOString() }));
     lsSet(STORE_PREFIX + 'progs', JSON.stringify(S.progs));
     lsSet(STORE_PREFIX + 'types', JSON.stringify(S.types));
   }, 250);
@@ -1082,9 +1255,12 @@ function detectByDepth(toks, page) {
   return out;
 }
 
-/** Círculos dibujados en la página (trazos cerrados hechos de curvas), en coordenadas de página. */
-async function findCircles(page) {
-  const O = pdfjsLib.OPS; const ol = await page.getOperatorList();
+/**
+ * Lee el dibujo vectorial de la página (coordenadas de página): grupos de círculos de igual tamaño,
+ * marcas «×» (dos trazos cortos que se cruzan en su punto medio) y trazos rectos sueltos.
+ */
+async function scanVectors(page) {
+  const O = pdfjsLib.OPS; const ol = await page.getOperatorList(); const segs = [];
   const mul = (m, n) => [m[0] * n[0] + m[2] * n[1], m[1] * n[0] + m[3] * n[1], m[0] * n[2] + m[2] * n[3], m[1] * n[2] + m[3] * n[3], m[0] * n[4] + m[2] * n[5] + m[4], m[1] * n[4] + m[3] * n[5] + m[5]];
   let ctm = [1, 0, 0, 1, 0, 0]; const stack = []; const found = [];
   for (let i = 0; i < ol.fnArray.length; i++) {
@@ -1095,15 +1271,20 @@ async function findCircles(page) {
     else if (f === O.paintFormXObjectBegin) { stack.push(ctm); if (a && a[0]) ctm = mul(ctm, a[0]); }
     else if (f === O.paintFormXObjectEnd) ctm = stack.pop() || ctm;
     else if (f === O.constructPath) {
-      const [ops, c] = a; let k = 0, sub = null; const subs = [];
+      const [ops, c] = a; let k = 0, sub = null, lx = null, ly = null; const subs = [];
       const start = () => { sub = { pts: [], curves: 0, lines: 0 }; subs.push(sub); };
+      const tx = (x, y) => [ctm[0] * x + ctm[2] * y + ctm[4], ctm[1] * x + ctm[3] * y + ctm[5]];
       for (const op of ops) {
-        if (op === O.moveTo) { start(); sub.pts.push(c[k], c[k + 1]); k += 2; }
-        else if (op === O.lineTo) { if (!sub) start(); sub.pts.push(c[k], c[k + 1]); sub.lines++; k += 2; }
-        else if (op === O.curveTo) { if (!sub) start(); sub.pts.push(c[k], c[k + 1], c[k + 2], c[k + 3], c[k + 4], c[k + 5]); sub.curves++; k += 6; }
-        else if (op === O.curveTo2 || op === O.curveTo3) { if (!sub) start(); sub.pts.push(c[k], c[k + 1], c[k + 2], c[k + 3]); sub.curves++; k += 4; }
-        else if (op === O.rectangle) { k += 4; sub = null; }
-        else if (op === O.closePath) sub = null;
+        if (op === O.moveTo) { start(); sub.pts.push(c[k], c[k + 1]); lx = c[k]; ly = c[k + 1]; k += 2; }
+        else if (op === O.lineTo) {
+          if (!sub) start(); sub.pts.push(c[k], c[k + 1]); sub.lines++;
+          if (lx !== null) { const p0 = tx(lx, ly), p1 = tx(c[k], c[k + 1]); segs.push({ x0: p0[0], y0: p0[1], x1: p1[0], y1: p1[1] }); }
+          lx = c[k]; ly = c[k + 1]; k += 2;
+        }
+        else if (op === O.curveTo) { if (!sub) start(); sub.pts.push(c[k], c[k + 1], c[k + 2], c[k + 3], c[k + 4], c[k + 5]); sub.curves++; lx = c[k + 4]; ly = c[k + 5]; k += 6; }
+        else if (op === O.curveTo2 || op === O.curveTo3) { if (!sub) start(); sub.pts.push(c[k], c[k + 1], c[k + 2], c[k + 3]); sub.curves++; lx = c[k + 2]; ly = c[k + 3]; k += 4; }
+        else if (op === O.rectangle) { k += 4; sub = null; lx = ly = null; }
+        else if (op === O.closePath) { sub = null; }
       }
       for (const sp of subs) {
         if (sp.curves < 4 || sp.lines > 2) continue;
@@ -1126,7 +1307,47 @@ async function findCircles(page) {
     if (!g) { g = []; groups.set(key, g); }
     if (!g.some(o => Math.hypot(o.x - c.x, o.y - c.y) < c.d * 0.3)) g.push(c);
   }
-  return [...groups.values()].filter(g => g.length >= 5).sort((a, b) => b.length - a.length).slice(0, 4);
+  const circleGroups = [...groups.values()].filter(g => g.length >= 5).sort((a, b) => b.length - a.length).slice(0, 4);
+  // Marcas «×»: dos trazos cortos de largo parecido que se cruzan en su punto medio.
+  const sh = segs.map(g => ({ len: Math.hypot(g.x1 - g.x0, g.y1 - g.y0), mx: (g.x0 + g.x1) / 2, my: (g.y0 + g.y1) / 2, ang: Math.atan2(g.y1 - g.y0, g.x1 - g.x0) }))
+    .filter(g => g.len > 1 && g.len < 15).sort((a, b) => a.mx - b.mx);
+  const crosses = [];
+  for (let i = 0; i < sh.length; i++) {
+    const a = sh[i];
+    for (let j = i + 1; j < sh.length && sh[j].mx - a.mx < 2; j++) {
+      const b = sh[j];
+      if (Math.hypot(a.mx - b.mx, a.my - b.my) > Math.min(a.len, b.len) * 0.25) continue;
+      if (Math.abs(a.len - b.len) > Math.max(a.len, b.len) * 0.35 || Math.abs(Math.sin(a.ang - b.ang)) < 0.5) continue;
+      const cx = (a.mx + b.mx) / 2, cy = (a.my + b.my) / 2;
+      if (!crosses.some(o => Math.hypot(o.x - cx, o.y - cy) < 1)) crosses.push({ x: cx, y: cy, s: (a.len + b.len) / 2 });
+    }
+  }
+  return { circleGroups, crosses, segs };
+}
+
+/**
+ * Ajuste fino: lleva cada pozo al centro exacto de su marca en el plano: una «×», un círculo,
+ * o un círculo dibujado con trazos cortos. Solo se mueve si la marca está muy cerca del punto estimado.
+ */
+function snapHoles(holes, scan) {
+  if (holes.length < 2) return;
+  const sp = median(holes.map(h => { let m = Infinity; for (const o of holes) if (o !== h) m = Math.min(m, Math.hypot(o.x - h.x, o.y - h.y)); return m; }).filter(Number.isFinite)) || 20;
+  const tol = sp * 0.38;
+  const circles = scan.circleGroups.flat();
+  const tiny = scan.segs.filter(g => Math.hypot(g.x1 - g.x0, g.y1 - g.y0) < sp * 0.06);
+  const nearest = (list, h) => { let best = null, bd = tol; for (const m of list) { const d = Math.hypot(m.x - h.x, m.y - h.y); if (d < bd) { bd = d; best = m; } } return best; };
+  for (const h of holes) {
+    const m = nearest(scan.crosses, h) || nearest(circles, h);
+    if (m) { h.x = m.x; h.y = m.y; continue; }
+    // Círculo hecho de trazos cortos: centro del recuadro que forman sus puntos.
+    const pts = [];
+    for (const g of tiny) for (const [x, y] of [[g.x0, g.y0], [g.x1, g.y1]]) if (Math.hypot(x - h.x, y - h.y) < tol) pts.push([x, y]);
+    if (pts.length < 8) continue;
+    const xs = pts.map(q => q[0]), ys = pts.map(q => q[1]);
+    const w = Math.max(...xs) - Math.min(...xs), hh = Math.max(...ys) - Math.min(...ys);
+    if (w < tol * 0.3 || Math.abs(w - hh) > Math.max(w, hh) * 0.35) continue;
+    h.x = (Math.max(...xs) + Math.min(...xs)) / 2; h.y = (Math.max(...ys) + Math.min(...ys)) / 2;
+  }
 }
 
 /**
@@ -1134,10 +1355,10 @@ async function findCircles(page) {
  * y el tiempo de salida (ms) al lado. Los pozos cuyo círculo no se puede leer se ubican con la posición
  * del ID y el mismo desplazamiento que tienen los demás.
  */
-async function detectByCircles(page, toks, pageNo) {
+function detectByCircles(scan, toks, pageNo) {
   // Los pozos son el grupo de círculos de igual tamaño que mejor calza con los ID del plano.
   let best = [];
-  for (const g of await findCircles(page)) { const r = pairCircles(g, toks, pageNo); if (r.length > best.length) best = r; }
+  for (const g of scan.circleGroups) { const r = pairCircles(g, toks, pageNo); if (r.length > best.length) best = r; }
   return best;
 }
 function pairCircles(circles, toks, pageNo) {
@@ -1192,8 +1413,8 @@ function pairCircles(circles, toks, pageNo) {
 async function detectPage(page, pageNo) {
   const toks = textTokens((await page.getTextContent()).items);
   const a = detectByDepth(toks, pageNo);
-  let b = [];
-  try { b = await detectByCircles(page, toks, pageNo); } catch (err) { console.error(err); }
+  let b = [], scan = null;
+  try { scan = await scanVectors(page); b = detectByCircles(scan, toks, pageNo); } catch (err) { console.error(err); }
   const base = a.length >= b.length ? a : b, extra = base === a ? b : a;
   const nn = (list) => median(list.map(h => { let m = Infinity; for (const o of list) if (o !== h) m = Math.min(m, Math.hypot(o.x - h.x, o.y - h.y)); return m; }).filter(Number.isFinite));
   const tol = (nn(base) || nn(extra) || 20) * 0.5;
@@ -1204,6 +1425,7 @@ async function detectPage(page, pageNo) {
     if (m) { if (m.dDesign === null) m.dDesign = h.dDesign; if (m.tDesign === null) m.tDesign = h.tDesign; both++; continue; }
     out.push(h);
   }
+  if (scan) snapHoles(out, scan);
   out.forEach(h => { h.uid = uidSeq++; });
   const fmt = a.length && b.length && (out.length > base.length || both) ? 'ambos' : a.length >= b.length ? (a.length ? 'malla' : '') : 'secuencia';
   detectInfo.push(fmt);
@@ -1230,11 +1452,16 @@ async function openPdf(bytes, name, { demo = false, restore = null } = {}) {
     const stored = restore || (S.docKey ? safeParse(lsGet(STORE_PREFIX + S.docKey)) : null);
     if (stored && Array.isArray(stored.holes)) {
       S.holes = stored.holes.map(normHole); S.types = stored.types?.length ? stored.types : S.types;
-      S.settings = normSettings({ ...S.settings, ...(stored.settings || {}) });
-      loadStrings(stored); loadProgs(stored);
+      S.settings = normSettings({ ...S.settings, ...(stored.settings || {}) }); applyMarkColors();
+      loadStrings(stored); loadProgs(stored); S.draws = Array.isArray(stored.draws) ? stored.draws : [];
       uidSeq = Math.max(0, ...S.holes.map(h => h.uid)) + 1;
+      // Planos guardados con una versión anterior: los pozos detectados se ajustan al centro exacto de su marca.
+      for (let p = 1; p <= pdf.numPages; p++) {
+        const hs = S.holes.filter(h => h.page === p && !h.manual);
+        if (hs.length) { try { snapHoles(hs, await scanVectors(await pdf.getPage(p))); } catch (err) { console.error(err); } }
+      }
     } else {
-      S.strings = []; S.activeString = null; loadProgs({ progs: safeParse(lsGet(STORE_PREFIX + 'progs')) || [] });
+      S.strings = []; S.activeString = null; S.draws = []; loadProgs({ progs: safeParse(lsGet(STORE_PREFIX + 'progs')) || [] });
       if (!demo) { const gt = safeParse(lsGet(STORE_PREFIX + 'types')); if (Array.isArray(gt) && gt.length) S.types = gt; }
       S.holes = [];
       for (let p = 1; p <= pdf.numPages; p++) {
@@ -1370,8 +1597,32 @@ function stringsSvg(r) {
   return o.join('');
 }
 /** Vista de reparto: pozos con detonador pintados con el color del programador; pendientes en gris. */
+/** Dibujos del lápiz de la página actual (debajo de los pozos). */
+const PEN_COLORS = ['#e11d48', '#f97316', '#eab308', '#16a34a', '#0ea5e9', '#2563eb', '#7c3aed', '#111111'];
+const PEN_WIDTHS = [[1, 'Fina'], [2, 'Media'], [4, 'Gruesa']];
+function drawsSvg(r) {
+  if (!S.settings.showDraws) return '';
+  const o = [];
+  for (const d of S.draws) {
+    if (d.page !== S.pageNum || d.pts.length < 2) continue;
+    const pts = d.pts.map(([x, y]) => { const [a, b] = S.vp.convertToViewportPoint(x, y); return a.toFixed(2) + ',' + b.toFixed(2); }).join(' ');
+    const w = (d.w * r * .3).toFixed(2);
+    if (d.kind === 'zone') o.push(`<polygon points="${pts}" fill="${d.color}" fill-opacity=".14" stroke="${d.color}" stroke-width="${w}" stroke-linejoin="round" stroke-dasharray="${(r * 1.2).toFixed(2)} ${(r * .6).toFixed(2)}"/>`);
+    else o.push(`<polyline points="${pts}" fill="none" stroke="${d.color}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"/>`);
+    if (d.label) {
+      const c = drawAnchor(d); const [a, b] = S.vp.convertToViewportPoint(c[0], c[1]);
+      o.push(`<text x="${a.toFixed(2)}" y="${b.toFixed(2)}" text-anchor="middle" font-size="${(r * 2.2).toFixed(2)}" font-weight="700" fill="${d.color}" stroke-width="${(r * .5).toFixed(2)}">${esc(d.label)}</text>`);
+    }
+  }
+  return o.join('');
+}
+/** Punto donde va el nombre: centro de la zona, o punto medio de la línea. */
+function drawAnchor(d) {
+  if (d.kind === 'zone') { let x = 0, y = 0; for (const p of d.pts) { x += p[0]; y += p[1]; } return [x / d.pts.length, y / d.pts.length]; }
+  return d.pts[Math.floor(d.pts.length / 2)];
+}
 function renderRepOverlay() {
-  const r = S.r, out = [];
+  const r = S.r, out = [drawsSvg(r)];
   for (const h of pageHoles()) {
     const p = toScreen(h), pr = progOf(h), sel = S.sel.has(h.uid);
     out.push(`<g transform="translate(${p.x.toFixed(2)} ${p.y.toFixed(2)})">`);
@@ -1389,6 +1640,7 @@ function renderOverlay() {
   if (S.repMode) { renderRepOverlay(); return; }
   const r = S.r; const out = [];
   const tagCount = tagCounts(); const seq = seqIndex();
+  out.push(drawsSvg(r));
   if (S.settings.showStrings) out.push(stringsSvg(r));
   for (const h of pageHoles()) {
     const t = typeOf(h); const p = toScreen(h); const sel = S.sel.has(h.uid); const q = seq.get(h.uid);
@@ -1449,7 +1701,7 @@ function renderLegend() {
        <span class="mk" style="background:${MARK_TAPADO}"></span>Tapado <span class="mk" style="background:${MARK_REPASADO};border-radius:50%"></span>Repasado <span class="mk" style="background:${MARK_REPRIME};border-radius:50%"></span>Reprimado</div>` : '');
 }
 
-function renderAll() { renderOverlay(); renderLegend(); renderPanel(); renderTable(); renderStrings(); renderStrBar(); renderRepBar(); renderRep(); renderPeek(); }
+function renderAll() { renderOverlay(); renderLegend(); renderPanel(); renderTable(); renderStrings(); renderStrBar(); renderPenBar(); renderRepBar(); renderRep(); renderPeek(); }
 
 // ===================== Zoom y desplazamiento =====================
 function applyXf() { $('world').style.transform = `translate(${S.tx}px, ${S.ty}px) scale(${S.z})`; scheduleDetail(); }
@@ -1486,10 +1738,10 @@ stage.addEventListener('pointerdown', (e) => {
   if (ptrs.size === 2) {
     const [a, b] = [...ptrs.values()];
     gest = { kind: 'pinch', d: Math.hypot(a.x - b.x, a.y - b.y), cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2 };
-    $('selRect').hidden = true; return;
+    $('selRect').hidden = true; $('penSvg').setAttribute('hidden', ''); $('lassoSvg').setAttribute('hidden', ''); return;
   }
   const area = S.mode === 'area' || e.shiftKey || (S.mode === 'string' && S.strOp === 'remove');
-  gest = { kind: S.mode === 'lasso' ? 'lasso' : area ? 'area' : 'pan', sx: p.x, sy: p.y, tx: S.tx, ty: S.ty, moved: false, add: e.ctrlKey || e.metaKey || e.shiftKey, pts: [p] };
+  gest = { kind: S.mode === 'pen' && !S.settings.pen.erase ? 'pen' : S.mode === 'lasso' ? 'lasso' : area ? 'area' : 'pan', sx: p.x, sy: p.y, tx: S.tx, ty: S.ty, moved: false, add: e.ctrlKey || e.metaKey || e.shiftKey, pts: [p] };
 });
 stage.addEventListener('pointermove', (e) => {
   if (!ptrs.has(e.pointerId) || !gest) return;
@@ -1504,10 +1756,19 @@ stage.addEventListener('pointermove', (e) => {
   if (!gest.moved && Math.hypot(dx, dy) < 5) return;
   gest.moved = true;
   if (gest.kind === 'pan') { stage.classList.add('dragging'); S.tx = gest.tx + dx; S.ty = gest.ty + dy; applyXf(); }
+  else if (gest.kind === 'pen') {
+    const last = gest.pts[gest.pts.length - 1];
+    if (Math.hypot(p.x - last.x, p.y - last.y) >= 2) gest.pts.push(p);
+    const pen = S.settings.pen, live = $('penLive');
+    $('penSvg').removeAttribute('hidden');
+    live.setAttribute('points', gest.pts.map(q => q.x.toFixed(1) + ',' + q.y.toFixed(1)).join(' ') + (pen.kind === 'zone' ? ' ' + gest.pts[0].x.toFixed(1) + ',' + gest.pts[0].y.toFixed(1) : ''));
+    live.setAttribute('stroke', pen.color); live.setAttribute('stroke-width', String(Math.max(1.5, pen.w * S.r * .3 * S.z)));
+    live.setAttribute('stroke-dasharray', pen.kind === 'zone' ? '10 5' : 'none');
+  }
   else if (gest.kind === 'lasso') {
     const last = gest.pts[gest.pts.length - 1];
     if (Math.hypot(p.x - last.x, p.y - last.y) >= 3) gest.pts.push(p);
-    $('lassoSvg').hidden = false; $('lassoPoly').setAttribute('points', gest.pts.map(q => q.x.toFixed(1) + ',' + q.y.toFixed(1)).join(' '));
+    $('lassoSvg').removeAttribute('hidden'); const pts = gest.pts.map(q => q.x.toFixed(1) + ',' + q.y.toFixed(1)).join(' '); $('lassoPoly').setAttribute('points', pts); $('lassoBack').setAttribute('points', pts);
   }
   else if (gest.kind === 'area') {
     const r = $('selRect'); r.hidden = false;
@@ -1543,8 +1804,14 @@ function endPtr(e) {
   if (!gest) return;
   if (gest.kind === 'pinch') { if (ptrs.size === 0) gest = null; return; }
   const g = gest; gest = null;
+  if (g.kind === 'pen') {
+    $('penSvg').setAttribute('hidden', ''); $('penLive').setAttribute('points', '');
+    if (g.moved) finishPen(g.pts);
+    return;
+  }
+  if (S.mode === 'pen' && S.settings.pen.erase && !g.moved) { const w = worldPt(p.x, p.y); eraseAt(w.x, w.y); return; }
   if (g.kind === 'lasso') {
-    $('lassoSvg').hidden = true; $('lassoPoly').setAttribute('points', '');
+    $('lassoSvg').setAttribute('hidden', ''); $('lassoPoly').setAttribute('points', ''); $('lassoBack').setAttribute('points', '');
     if (g.moved && g.pts.length > 2) {
       const poly = g.pts.map(q => worldPt(q.x, q.y));
       applyShape(pageHoles().filter(h => inPolygon(toScreen(h), poly)), g.add);
@@ -1600,7 +1867,9 @@ function setMode(m) {
   S.mode = m;
   if (m === 'string' && !S.strings.length) newString();
   if (m === 'string') { toast(S.settings.stringFill ? 'Modo String: toca el primer pozo y luego el último del tramo; los del medio se agregan en orden.' : 'Modo String: toca los pozos en orden.', 4000); renderOverlay(); }
-  renderStrBar();
+  renderStrBar(); renderPenBar();
+  if (m === 'pen' && UI.open && !UI.pin) setPanel(false); // el lápiz necesita el plano a la vista
+  if (m === 'pen') toast(S.settings.pen.kind === 'zone' ? 'Lápiz · Zona: dibuja el contorno de la zona de trabajo. Dos dedos mueven el plano.' : 'Lápiz · Línea: dibuja con un dedo. Dos dedos mueven el plano.', 4000);
   document.querySelectorAll('[data-mode]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === m)));
   stage.className = m === 'select' ? '' : 'mode-' + m;
   if (m === 'string' && S.strOp === 'remove') stage.className += ' remove';
@@ -1609,7 +1878,7 @@ document.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => setMode(
 $('sbFill').onchange = (e) => { S.settings.stringFill = e.target.checked; save(); renderStrings(); };
 $('sbUndo').onclick = undoStringAdd;
 document.querySelectorAll('[data-strop]').forEach(b => b.onclick = () => setStrOp(b.dataset.strop));
-$('sbNew').onclick = () => { const st = newString(); if (S.settings.continuous) { const prev = S.strings[S.strings.length - 2]; if (prev) st.start = prev.start + prev.holes.length; } S.stringAsk = false; save(); renderAll(); toast(`${st.name} creado y activo. Toca el primer pozo.`); };
+$('sbNew').onclick = () => { const st = newString(); if (S.settings.continuous) { const prev = S.strings[S.strings.length - 2]; if (prev) st.start = lastNo(prev) + 1; } S.stringAsk = false; save(); renderAll(); toast(`${st.name} creado y activo. Toca el primer pozo.`); };
 
 function addHoleAt(wx, wy) {
   const p = toPdf(wx, wy);
@@ -1815,11 +2084,20 @@ function stringSectionHtml(h) {
   return `<div class="grid2 strSec">
     <div class="field"><label for="f-str">String</label><select id="f-str"><option value="">Sin string</option>${S.strings.map(st =>
       `<option value="${st.id}" ${q && q.s === st ? 'selected' : ''}>${esc(st.name)} · ${st.holes.length} pozos</option>`).join('')}<option value="__new">+ Nuevo string</option></select></div>
-    <div class="field"><span class="lbl">N° de secuencia</span><div class="rowBtns" style="align-items:center"><span class="seqNo mono" style="color:${q ? q.s.color : 'var(--muted)'}">${q ? q.n : '—'}</span>${q ? '<button class="btn small" type="button" id="strOut">Quitar del string</button>' : ''}</div></div>
-  </div>`;
+    <div class="field"><label for="f-seqn">N° de secuencia</label><div class="rowBtns" style="align-items:center">${q
+      ? `<input id="f-seqn" class="mono seqIn" type="number" step="1" value="${q.n}" style="color:${q.s.color}" title="Cambiarlo reinicia la numeración desde este pozo"><button class="btn small" type="button" id="strOut">Quitar del string</button>`
+      : '<span class="seqNo mono" style="color:var(--muted)">—</span>'}</div></div>
+  </div>${q && q.s.jumps?.[h.uid] !== undefined ? '<p class="hint" style="margin:-4px 0 10px">La numeración se reinicia en este pozo (salto). Los siguientes continúan desde aquí.</p>' : ''}`;
 }
 function bindStrSec(h) {
   const el = $('f-str'); if (!el) return;
+  if ($('f-seqn')) $('f-seqn').onchange = (e) => {
+    const q = seqIndex().get(h.uid); if (!q) return; const st = q.s; const v = parseInt(e.target.value, 10); if (!Number.isFinite(v)) return;
+    st.jumps = st.jumps || {};
+    if (q.i === 0) { st.start = v; delete st.jumps[h.uid]; }
+    else { const natural = noAt(st, q.i - 1) + 1; if (v === natural) delete st.jumps[h.uid]; else st.jumps[h.uid] = v; }
+    save(); renderAll(); toast(`N° ${v} en el pozo ${h.id}; los siguientes de ${st.name} continúan desde aquí.`);
+  };
   if ($('strOut')) $('strOut').onclick = () => { const st = stringOf(h.uid); removeHolesFromStrings([h]); save(); renderAll(); toast(`Pozo ${h.id} quitado de ${st?.name ?? 'su string'}. «Deshacer» en la barra String lo devuelve.`); };
   el.onchange = () => {
     const v = el.value;
@@ -1955,6 +2233,7 @@ function renderStrings() {
   };
   pane.innerHTML = `
     <p class="eyebrow">Strings de secuencia</p>
+    <p class="hint"><b>Editar:</b> toca un pozo que ya está en el string para insertar desde ahí (a mitad de string); usa <b>Al inicio</b> o <b>Al final</b> en la barra. El tramo automático salta los pozos de otros strings. En la ficha del pozo puedes cambiar su N° y la numeración sigue desde ahí. Tocar el primer o último pozo de otro string ofrece unirlos.</p>
     <p class="hint">Un string une los pozos en el orden en que se etiquetan. Marca el string activo y usa el modo <b>String</b> del plano: toca el primer pozo y luego el último del tramo, y los del medio se agregan en orden. Para sacar pozos usa <b>Quitar</b> en la barra String: toca un pozo o arrastra un rectángulo (los siguientes se renumeran). <b>Deshacer</b> revierte la última acción. Al volver al modo String después de otro comando, se pregunta si continuar el mismo string o iniciar otro (con otro color). El N° de secuencia parte en el número de inicio que definas.</p>
     <div class="strList">
     ${S.strings.map((st, i) => { const act = st.id === S.activeString; return `
@@ -1963,7 +2242,9 @@ function renderStrings() {
         <input type="color" id="sc-${i}" value="${st.color}" aria-label="Color de ${esc(st.name)}">
         <input type="text" id="sn-${i}" value="${esc(st.name)}" aria-label="Nombre del string">
         <span class="cnt mono ${st.holes.length > max ? 'over' : ''}" title="Pozos / máximo">${st.holes.length}/${max}</span>
-        <div class="cfg"><label class="hint" for="ss-${i}">Inicia en N°</label><input type="number" id="ss-${i}" value="${st.start}" step="1"><span class="hint mono">${stringRange(st)}</span></div>
+        <div class="cfg"><label class="hint" for="ss-${i}">Inicia en N°</label><input type="number" id="ss-${i}" value="${st.start}" step="1"><span class="hint mono">${stringRange(st)}</span>
+          ${Object.keys(st.jumps || {}).filter(u => st.holes.includes(+u)).length ? `<button class="btn small" type="button" data-sjclr="${i}" title="Vuelve a numerar de uno en uno desde el inicio">Quitar saltos (${Object.keys(st.jumps).filter(u => st.holes.includes(+u)).length})</button>` : ''}</div>
+        ${S.strings.length > 1 ? `<div class="cfg"><label class="hint" for="sj-${i}">Unir con</label><select id="sj-${i}" data-sjoin="${i}"><option value="">— elegir string —</option>${S.strings.filter(o => o !== st).map(o => `<option value="${o.id}">${esc(o.name)} (${o.holes.length} pozos)</option>`).join('')}</select></div>` : ''}
         <div class="cfg">${btns(st, i)}</div>
       </div>`; }).join('') || '<p class="hint">Aún no hay strings. Crea uno o empieza a etiquetar pozos: el primero se crea solo.</p>'}
     </div>
@@ -1990,6 +2271,12 @@ function renderStrings() {
     $('sn-' + i).onchange = (e) => { st.name = e.target.value.trim() || st.name; done(); };
     $('ss-' + i).onchange = (e) => { const v = parseInt(e.target.value, 10); st.start = Number.isFinite(v) ? v : 1; done(); };
   });
+  pane.querySelectorAll('[data-sjclr]').forEach(b => b.onclick = () => { S.strings[+b.dataset.sjclr].jumps = {}; done(); });
+  pane.querySelectorAll('[data-sjoin]').forEach(sel => sel.onchange = () => {
+    const st = S.strings[+sel.dataset.sjoin], other = S.strings.find(o => o.id === sel.value); if (!other) return;
+    choice(`¿Unir ${other.name} a ${st.name}?`, `Los ${other.holes.length} pozos de <b>${esc(other.name)}</b> se agregan al final de <b>${esc(st.name)}</b>, en su mismo orden, y ${esc(other.name)} deja de existir.`,
+      [[`Unir`, 'primary', () => { S.strCursor = null; joinStrings(st, other, false); }], ['Cancelar', '', () => renderStrings()]]);
+  });
   pane.querySelectorAll('[data-sact]').forEach(b => b.onclick = () => {
     const st = S.strings[+b.dataset.i]; const a = b.dataset.sact;
     if (a === 'no') S.confirm = null;
@@ -2001,8 +2288,8 @@ function renderStrings() {
     else if (a === 'delYes') { S.strings.splice(+b.dataset.i, 1); if (S.activeString === st.id) S.activeString = S.strings[0]?.id ?? null; S.confirm = null; }
     done();
   });
-  $('strNew').onclick = () => { const st = newString(); const prev = S.strings[S.strings.length - 2]; if (prev && S.settings.continuous) st.start = prev.start + prev.holes.length; done(); toast(`${st.name} creado y activo.`); };
-  $('strCont').onclick = () => { for (let i = 1; i < S.strings.length; i++) S.strings[i].start = S.strings[i - 1].start + S.strings[i - 1].holes.length; S.settings.continuous = true; done(); toast('Numeración continua aplicada.'); };
+  $('strNew').onclick = () => { const st = newString(); const prev = S.strings[S.strings.length - 2]; if (prev && S.settings.continuous) st.start = lastNo(prev) + 1; done(); toast(`${st.name} creado y activo.`); };
+  $('strCont').onclick = () => { for (let i = 1; i < S.strings.length; i++) S.strings[i].start = lastNo(S.strings[i - 1]) + 1; S.settings.continuous = true; done(); toast('Numeración continua aplicada.'); };
   $('strMode').onclick = () => setMode('string');
   $('strMax').onchange = (e) => { S.settings.stringMax = Math.max(1, parseInt(e.target.value, 10) || 400); done(); };
   $('strAuto').onchange = (e) => { S.settings.autoString = e.target.checked; save(); };
@@ -2022,6 +2309,7 @@ function renderSimb() {
     <p class="hint">Elige qué mostrar junto a cada pozo. Se aplica en pantalla y en el plano anotado PDF.</p>
     ${LABEL_FIELDS.map(([k, n]) => `<label class="check"><input type="checkbox" data-lbl="${k}" ${L[k] ? 'checked' : ''}> ${n}</label>`).join('')}
     <label class="check"><input type="checkbox" id="optStr" ${S.settings.showStrings ? 'checked' : ''}> Líneas de los strings</label>
+    <label class="check"><input type="checkbox" id="optDraws" ${S.settings.showDraws ? 'checked' : ''}> Dibujos del lápiz (líneas y zonas)</label>
     <label class="check"><input type="checkbox" id="optMarks" ${S.settings.showMarks ? 'checked' : ''}> Marcas de agua, tapado y repasado</label>
     <label class="check"><input type="checkbox" id="optUn" ${S.settings.showUnassigned ? 'checked' : ''}> Pozos sin tipo (círculo punteado)</label>
     <div class="sectionGap"></div>
@@ -2030,7 +2318,15 @@ function renderSimb() {
     <div class="field" style="margin-top:8px"><label for="optSort">Orden de los pozos en informes</label>
       <select id="optSort"><option value="id" ${S.settings.reportSort === 'id' ? 'selected' : ''}>Por malla e ID de pozo</option><option value="seq" ${S.settings.reportSort === 'seq' ? 'selected' : ''}>Por string y N° de secuencia</option></select></div>
     <div class="sectionGap"></div>
-    <p class="eyebrow">Simbología: detonadores por pozo</p>
+    <p class="eyebrow">Colores de las marcas</p>
+    ${[['reprime', 'Pozo reprimado'], ['water', 'Agua'], ['tapado', 'Tapado'], ['repasado', 'Repasado']].map(([k, n]) => `<div class="markRow">
+      <span class="mk" style="background:${S.settings.colors[k]}"></span><span class="mkName">${n}</span>
+      <input type="color" id="mc-${k}" value="${S.settings.colors[k]}" aria-label="Color ${n}">
+      <div class="palette quick">${QUICK_COLORS.map(c => `<button type="button" data-mq="${k}" data-c="${c}" style="background:${c}" aria-pressed="${c.toLowerCase() === S.settings.colors[k].toLowerCase()}" aria-label="Color ${c}"></button>`).join('')}</div>
+    </div>`).join('')}
+    <div class="rowBtns" style="margin:6px 0 2px"><button class="btn small" type="button" id="mcReset">Restablecer colores de marcas</button></div>
+    <div class="sectionGap"></div>
+    <p class="eyebrow">Simbología: detonadores por pozo (color, símbolo y cantidad)</p>
     <p class="hint">Cada tipo define el color, el símbolo en el plano y cuántos detonadores lleva el pozo (cada uno con su etiqueta y retardo).</p>
     ${S.types.map((t, i) => `<div class="typeRow" data-i="${i}">
       <span>${symbolSvg(t, 28)}</span>
@@ -2038,6 +2334,7 @@ function renderSimb() {
       <span class="count" title="Pozos con este tipo">${counts.get(t.key) || 0}</span>
       <div class="cfg">
         <input type="color" id="tc-${i}" value="${t.color}" aria-label="Color">
+        <div class="palette quick">${QUICK_COLORS.map(c => `<button type="button" data-tq="${i}" data-c="${c}" style="background:${c}" aria-pressed="${c.toLowerCase() === t.color.toLowerCase()}" aria-label="Color ${c}"></button>`).join('')}</div>
         <select id="ts-${i}" aria-label="Símbolo">${opts(t.symbol)}</select>
         <label class="hint" for="tq-${i}">Detonadores</label><input type="number" id="tq-${i}" min="1" max="6" value="${t.n}">
         ${S.confirm === 'deltype' + i ? `<button class="btn small danger solid" type="button" data-tdel-yes="${i}">Quitar</button><button class="btn small" type="button" data-tdel-no>Cancelar</button>`
@@ -2053,6 +2350,7 @@ function renderSimb() {
     $('tn-' + i).onchange = (e) => { t.name = e.target.value.trim() || t.name; commitTypes(); };
     $('tc-' + i).oninput = (e) => { t.color = e.target.value; commitTypes(false); };
     $('tc-' + i).onchange = () => commitTypes();
+    document.querySelectorAll(`[data-tq="${i}"]`).forEach(b => b.onclick = () => { t.color = b.dataset.c; commitTypes(); });
     $('ts-' + i).onchange = (e) => { t.symbol = e.target.value; commitTypes(); };
     $('tq-' + i).onchange = (e) => { t.n = Math.max(1, Math.min(6, parseInt(e.target.value, 10) || 1)); commitTypes(); };
   });
@@ -2075,6 +2373,11 @@ function renderSimb() {
   document.querySelectorAll('[data-rcol]').forEach(c => c.onchange = () => { S.settings.reportCols[c.dataset.rcol] = c.checked; save(); });
   $('optSort').onchange = (e) => { S.settings.reportSort = e.target.value; save(); };
   $('optStr').onchange = (e) => { S.settings.showStrings = e.target.checked; save(); renderOverlay(); };
+  const setMark = (k, c) => { S.settings.colors[k] = c; applyMarkColors(); save(); renderOverlay(); renderLegend(); renderSimb(); };
+  ['reprime', 'water', 'tapado', 'repasado'].forEach(k => { $('mc-' + k).onchange = (e) => setMark(k, e.target.value); });
+  document.querySelectorAll('[data-mq]').forEach(b => b.onclick = () => setMark(b.dataset.mq, b.dataset.c));
+  $('mcReset').onclick = () => { S.settings.colors = { ...MARK_DEFAULTS }; applyMarkColors(); save(); renderOverlay(); renderLegend(); renderSimb(); };
+  $('optDraws').onchange = (e) => { S.settings.showDraws = e.target.checked; save(); renderOverlay(); };
   $('optMarks').onchange = (e) => { S.settings.showMarks = e.target.checked; save(); renderOverlay(); renderLegend(); };
   $('optUn').onchange = (e) => { S.settings.showUnassigned = e.target.checked; save(); renderOverlay(); };
   if ($('redetect')) $('redetect').onclick = () => { S.confirm = 'redetect'; renderSimb(); };
@@ -2111,6 +2414,7 @@ document.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => showTab(b
 document.addEventListener('keydown', (e) => {
   const tag = e.target.tagName;
   if (!$('strAsk').hidden) { if (e.key === 'Escape') $('strAsk').hidden = true; return; }
+  if (!$('choiceDlg').hidden) { if (e.key === 'Escape') $('choiceDlg').hidden = true; return; }
   if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.ctrlKey || e.metaKey || e.altKey) return;
   if (/^[0-9]$/.test(e.key) && S.sel.size) {
     const i = +e.key; if (i === 0) setTypeSel(''); else if (S.types[i - 1]) setTypeSel(S.types[i - 1].key);
@@ -2122,6 +2426,7 @@ document.addEventListener('keydown', (e) => {
   else if (e.key === 'a' || e.key === 'A') setMode('area');
   else if (e.key === 'n' || e.key === 'N') setMode('add');
   else if (e.key === 'l' || e.key === 'L') setMode('lasso');
+  else if (e.key === 'p' || e.key === 'P') setMode('pen');
   else if (e.key === 'r' || e.key === 'R') showTab(S.repMode ? 'pozo' : 'rep');
   else if (e.key === 's' || e.key === 'S') setMode('string');
   else if (e.key === 'Backspace' && S.mode === 'string') { undoStringAdd(); e.preventDefault(); }
@@ -2146,7 +2451,7 @@ $('btnDemo').onclick = loadDemo;
 // ===================== Interfaz: barra de comandos, menús y panel desplegable =====================
 /** Preferencias de pantalla de este equipo (no viajan con el respaldo). */
 const UI_KEY = STORE_PREFIX + 'ui';
-const RAIL_CMDS = [['file', 'Archivo'], ['print', 'Imprimir'], ['select', 'Seleccionar'], ['area', 'Área'], ['lasso', 'Lazo'], ['rep', 'Reparto'], ['string', 'String'], ['add', 'Agregar pozo'], ['zoomIn', 'Acercar'], ['zoomOut', 'Alejar'], ['zoomFit', 'Ajustar'], ['panel', 'Panel']];
+const RAIL_CMDS = [['file', 'Archivo'], ['print', 'Imprimir'], ['select', 'Seleccionar'], ['area', 'Área'], ['lasso', 'Lazo'], ['rep', 'Reparto'], ['string', 'String'], ['pen', 'Lápiz'], ['add', 'Agregar pozo'], ['zoomIn', 'Acercar'], ['zoomOut', 'Alejar'], ['zoomFit', 'Ajustar'], ['panel', 'Panel']];
 const UI = Object.assign({ rail: 'left', size: 'normal', labels: window.innerWidth >= 520, hide: [], panel: 'auto', autoOpen: true, open: false, pin: false, full: false }, safeParse(lsGet(UI_KEY)) || {});
 const saveUI = () => lsSet(UI_KEY, JSON.stringify(UI));
 function panelPos() { return UI.panel === 'auto' ? (window.innerWidth < 760 ? 'bottom' : 'side') : UI.panel; }
@@ -2155,7 +2460,7 @@ function applyUI() {
   app.dataset.rail = UI.rail; app.dataset.railsize = UI.size; app.dataset.labels = UI.labels ? '1' : '0';
   app.dataset.panel = panelPos(); app.dataset.open = UI.open ? '1' : '0'; app.dataset.pin = UI.pin ? '1' : '0'; app.dataset.full = UI.full ? '1' : '0';
   document.querySelectorAll('#rail [data-cmd]').forEach(b => { b.hidden = UI.hide.includes(b.dataset.cmd); });
-  $('rail').querySelector('[data-cmd="sep1"]').hidden = ['select', 'area', 'lasso', 'rep', 'string', 'add'].every(c => UI.hide.includes(c));
+  $('rail').querySelector('[data-cmd="sep1"]').hidden = ['select', 'area', 'lasso', 'rep', 'string', 'pen', 'add'].every(c => UI.hide.includes(c));
   $('rail').querySelector('[data-cmd="sep2"]').hidden = ['zoomIn', 'zoomOut', 'zoomFit'].every(c => UI.hide.includes(c));
   $('btnPanel').setAttribute('aria-expanded', String(UI.open));
   $('peek').setAttribute('aria-expanded', String(UI.open)); $('peek').hidden = UI.open;
@@ -2292,7 +2597,7 @@ document.querySelectorAll('.pop [data-exp]').forEach(b => b.onclick = async () =
     if (k === 'txt') await saveFile(baseName() + '_informe.txt', '﻿' + buildTxt());
     if (k === 'csv') await saveFile(baseName() + '_pozos.csv', '﻿' + buildCsv());
     if (k === 'csv-det') await saveFile(baseName() + '_detonadores.csv', '﻿' + buildCsvDets());
-    if (k === 'json') await saveFile(baseName() + '_respaldo.json', JSON.stringify({ app: 'blaster.lcv', version: 2, fileName: S.fileName, docKey: S.docKey, exportedAt: new Date().toISOString(), types: S.types, settings: S.settings, strings: S.strings, activeString: S.activeString, progs: S.progs, activeProg: S.activeProg, holes: S.holes }, null, 1));
+    if (k === 'json') await saveFile(baseName() + '_respaldo.json', JSON.stringify({ app: 'blaster.lcv', version: 2, fileName: S.fileName, docKey: S.docKey, exportedAt: new Date().toISOString(), types: S.types, settings: S.settings, strings: S.strings, activeString: S.activeString, progs: S.progs, activeProg: S.activeProg, draws: S.draws, holes: S.holes }, null, 1));
   } catch (err) { console.error(err); toast('No se pudo exportar: ' + (err.message || err.code || err), 5000); }
 });
 function baseName() { return (S.fileName || 'malla').replace(/\.pdf$/i, '').replace(/[^\w\-]+/g, '_'); }
@@ -2473,6 +2778,7 @@ async function buildPdf({ plan = true, report = true, rep = false } = {}) {
       const page = pages[p - 1]; const hs = S.holes.filter(h => h.page === p);
       if (!hs.some(h => typeOf(h) || seq.has(h.uid) || h.drop) && p !== S.pageNum) continue;
       const r = S.r; // misma escala que en pantalla (unidades de página)
+      if (S.settings.showDraws) drawPenPdf(page, p, r, bold);
       if (rep) { drawRepPage(page, hs, r, font, bold); continue; }
       // Strings: línea, flechas de sentido y nombre en el primer pozo
       if (S.settings.showStrings) {
@@ -2556,6 +2862,18 @@ async function buildPdf({ plan = true, report = true, rep = false } = {}) {
   }
   if (report) drawReport(doc, font, bold);
   return doc.save();
+}
+
+/** Dibujos del lápiz en el PDF (líneas y zonas con su nombre). */
+function drawPenPdf(page, pageNo, r, bold) {
+  for (const d of S.draws) {
+    if (d.page !== pageNo || d.pts.length < 2) continue;
+    const c = hexRgb(d.color), w = d.w * r * .3;
+    const path = d.pts.map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(2)} ${(-y).toFixed(2)}`).join(' ') + (d.kind === 'zone' ? ' Z' : '');
+    if (d.kind === 'zone') page.drawSvgPath(path, { x: 0, y: 0, color: c, opacity: .14, borderColor: c, borderWidth: w, borderDashArray: [r * 1.2, r * .6] });
+    else page.drawSvgPath(path, { x: 0, y: 0, borderColor: c, borderWidth: w, borderLineCap: 1 });
+    if (d.label) { const [x, y] = drawAnchor(d), t = W(d.label), fs = r * 2.2; page.drawText(t, { x: x - bold.widthOfTextAtSize(t, fs) / 2, y: y - fs * .35, size: fs, font: bold, color: c }); }
+  }
 }
 
 /** Plano de reparto: pozos con detonador en el color del programador, pendientes en gris, y cuadro resumen. */
@@ -2660,7 +2978,7 @@ $('fileJson').onchange = async (e) => {
   if (!data || !Array.isArray(data.holes)) { toast('El archivo no es un respaldo válido de esta aplicación.', 4000); return; }
   if (!S.pdf) { toast('Abre primero el plano PDF y luego importa el respaldo.', 4000); return; }
   S.holes = data.holes.map(normHole); if (Array.isArray(data.types) && data.types.length) S.types = data.types;
-  S.settings = normSettings({ ...S.settings, ...(data.settings || {}) }); loadStrings(data); if (Array.isArray(data.progs)) loadProgs(data);
+  S.settings = normSettings({ ...S.settings, ...(data.settings || {}) }); applyMarkColors(); loadStrings(data); if (Array.isArray(data.progs)) loadProgs(data); if (Array.isArray(data.draws)) S.draws = data.draws;
   uidSeq = Math.max(0, ...S.holes.map(h => h.uid)) + 1; S.sel.clear();
   computeRadius(); save(); renderAll(); renderTypeFilter();
   toast(data.fileName && data.fileName !== S.fileName ? `Respaldo importado (era de «${data.fileName}»). Revisa que coincida con este plano.` : `Respaldo importado: ${S.holes.length} pozos.`, 4500);

@@ -16,7 +16,11 @@ Aplicación web para trabajar sobre planos PDF de mallas de perforación y trona
   - Editables (color, símbolo, cantidad) y se pueden agregar tipos nuevos.
 - **Por cada detonador**: etiqueta (código alfanumérico, se guarda en mayúsculas) y retardo en ms.
 - **Ficha del pozo**: tiempo de diseño (ms, con botón para usarlo como retardo), profundidad de diseño y real (con diferencia), estado (normal / tapado / repasado), agua (sí/no y altura), taco, largo de columna de carga calculado, tipo de explosivo, carga en kg, malla/disparo y observaciones.
-- **Lazo**: comando de la barra para dibujar una forma libre alrededor de los pozos y seleccionarlos (también marca reparto y saca pozos de strings con *Quitar*).
+- **Pozos sobre su marca**: cada pozo detectado se ajusta al centro exacto de su «×» o de su círculo en el plano (también círculos dibujados con trazos cortados). Los planos ya guardados se ajustan al abrirlos.
+- **Lápiz** (comando de la barra): líneas a mano alzada o **zonas de trabajo** (área cerrada y sombreada) con 8 colores, 3 grosores y nombre opcional; borrador, deshacer y borrar todo. Se guardan con el plano y salen en el PDF.
+- **Edición de strings**: tocar un pozo que ya está en el string inserta desde ahí (a mitad de string; botones *Al inicio* / *Al final*); el N° de cualquier pozo se puede cambiar y la numeración sigue desde ahí (saltos); el tramo automático salta los pozos de otros strings; tocar el primer o último pozo de otro string ofrece **unir** ambos (también desde la pestaña Strings).
+- **Colores**: paleta rápida para Simple, Doble, Triple y tipos propios, y colores configurables para Reprimado, Agua, Tapado y Repasado (pestaña Vista).
+- **Lazo**: comando de la barra para dibujar (con línea segmentada) una forma libre alrededor de los pozos y seleccionarlos (también marca reparto y saca pozos de strings con *Quitar*).
 - **Pozo reprimado**: casilla en la ficha, con detonadores agregados (1 por defecto) y comentario que sale en el informe (sección *Pozos reprimados - comentarios*). Marca «R» morada en el plano y filtro en el listado.
 - **Detonadores usados**: total por tipo (Simple ×1, Doble ×2, Triple ×3) más los agregados por reprimado, en el resumen, la ficha del pozo, la barra inferior, los informes y el CSV.
 - **Reparto de detonadores a piso** (comando *Reparto* de la barra o pestaña *Reparto*; al repartir se puede asignar primado Simple, Doble o Triple): mientras está abierta, el plano cambia a la vista de reparto y muestra los pozos donde ya se dejó el detonador, pintados con el color del programador que lo dejó (los pendientes en gris).
@@ -63,7 +67,7 @@ Aplicación web para trabajar sobre planos PDF de mallas de perforación y trona
 
 ## Instalar en Android e iOS
 
-- **Android:** `descargas/blaster-lcv-1.1.apk` (firmado, Android 5.0+). Instrucciones en [`descargas/INSTALAR.md`](descargas/INSTALAR.md). El código del contenedor está en `android/` y se compila con `android/build.sh` (herramientas de Android de Ubuntu; requiere la llave de firma).
+- **Android:** `descargas/blaster-lcv-1.2.apk` (firmado, Android 5.0+). Instrucciones en [`descargas/INSTALAR.md`](descargas/INSTALAR.md). El código del contenedor está en `android/` y se compila con `android/build.sh` (herramientas de Android de Ubuntu; requiere la llave de firma).
 - **iOS:** proyecto Xcode en `ios/` (se compila en una Mac), o instalar como app web desde Safari. Ver [`descargas/INSTALAR.md`](descargas/INSTALAR.md).
 
 ## Uso con y sin conexión
